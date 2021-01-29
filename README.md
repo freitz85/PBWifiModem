@@ -1,4 +1,4 @@
-Virtual modem for ESP8266
+The Old Net - RS232 Serial WIFI Modem
 =========================
 
 Copyright (C) 2020 Richard Bettridge under GPLv3 license.
