@@ -11,28 +11,13 @@ Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
 Overview
 --------
+TheOldNet.com is a set of services which aim to revitalize vintage computers by way of providing network access.
 
-ESP8266 is a tiny MCU module with WIFI. It already contains a virtual modem firmware by factory but I wanted to make one myself to support a wider range of baud rates. For example Commodore 64 requires 2400 or lower. Now it is also possible to add additional features in the future because this is open source. For example, translation tables for different character sets or file transfer protocol conversions on the fly with help of a buffer in MCU memory.
+The Serial WIFI Modem Emulator is a RS232 DB9 connection which provides a bridge to the internet over WIFI. This device does not show up like a wifi network card on the old device. Rather it shows up as a Hayes compatible dial up modem. Instead of dialing phone numbers to connect to remote computers, it connects to remote computers via telnet. 
 
-This was originally modified for use on the Commodore 64. The easiest device to use in the Sparkfun ESP8266 WiFi Shield. Originally designed for use with an Arduino, it already contains the 3.3v <-> 5v level shifters needed on TX and RX but also the 3.3v voltage regulator. https://www.sparkfun.com/products/13287
+This means that you do not need any special software. Any old terminal program works. Instead of dialing a phone number, you "dial" an IP. It's that simple and easy. 
 
-Additional features added include storing settings in NVRAM, managing active settings and stored settings, speed dial management, auto answer capabilities, automatic busy messages when in use for incoming connections, hardware flow control support, support for Commodore PET MCTerm (by Madison Computer) bit 8 ASCII translation, time in call on disconnect, web server on port 80 supporting mDNS.
-
-Wiring
-------
-
-Connect the SparkFun ESP8266 WiFi Shield as follows to your C64.
-
-* ESP8266 HW_RX pin to C64 TX User port pin M
-* ESP8266 HW_TX pin to C64 RX User port pins B & C
-* ESP8266 5V pin to C64 +5v User port pin 2
-* ESP8266 GND pin to C64 GND User port pin A & N
-
-Additionally, one wire jumper on the ESP8266 shield:
-
-* ESP8266 RST pin to ESP8266 GPIO pin 0
-
-Slide the UART switch to "HW".
+[![Tutorial Video](quickstartthumb_with-title.png)](https://www.youtube.com/watch?v=kwbJz3IVW5M)
 
 AT command examples
 -------------------
