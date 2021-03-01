@@ -1,5 +1,6 @@
 The Old Net - RS232 Serial WIFI Modem
 =========================
+![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/modemv3.jpg)
 
 Copyright (C) 2020 Richard Bettridge under GPLv3 license.
 
