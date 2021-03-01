@@ -1,4 +1,4 @@
-Virtual modem for ESP8266
+The Old Net - RS232 Serial WIFI Modem
 =========================
 
 Copyright (C) 2020 Richard Bettridge under GPLv3 license.
@@ -17,7 +17,7 @@ The Serial WIFI Modem Emulator is a RS232 DB9 connection which provides a bridge
 
 This means that you do not need any special software. Any old terminal program works. Instead of dialing a phone number, you "dial" an IP. It's that simple and easy. 
 
-[![Tutorial Video](quickstartthumb_with-title.png)](https://www.youtube.com/watch?v=kwbJz3IVW5M)
+[![Tutorial Video](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/quickstartthumb_with-title.png)](https://www.youtube.com/watch?v=kwbJz3IVW5M)
 
 AT command examples
 -------------------
