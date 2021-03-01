@@ -11,7 +11,8 @@ based on https://github.com/jsalin/esp8266_modem
 Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
 ## Where to Buy
-[TheOldNet Store](https://www.tindie.com/products/theoldnet/rs232-serial-wifi-modem-for-vintage-computers-v3/)
+
+I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://www.tindie.com/products/theoldnet/rs232-serial-wifi-modem-for-vintage-computers-v3/)
 
 Overview
 --------
