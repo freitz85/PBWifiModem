@@ -10,6 +10,10 @@ Copyright (C) 2016 Paul Rickards <rickards@gmail.com> under GPLv3 license.
 based on https://github.com/jsalin/esp8266_modem
 Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
+## Where to Buy
+## -----------
+[TheOldNet Store](https://www.tindie.com/products/theoldnet/rs232-serial-wifi-modem-for-vintage-computers-v3/)
+
 Overview
 --------
 TheOldNet.com is a set of services which aim to revitalize vintage computers by way of providing network access.
