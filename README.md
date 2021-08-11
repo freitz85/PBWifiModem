@@ -10,6 +10,11 @@ Copyright (C) 2016 Paul Rickards <rickards@gmail.com> under GPLv3 license.
 based on https://github.com/jsalin/esp8266_modem
 Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
+## Where to Buy
+
+I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://www.tindie.com/products/theoldnet/rs232-serial-wifi-modem-for-vintage-computers-v3/)
+
+
 ## To Flash Firmware
 
 To flash the firmware you need three things:
@@ -20,9 +25,6 @@ To flash the firmware you need three things:
 
 3) If on windows, this driver: https://www.silabs.com/documents/public/software/CP210x_Universal_Windows_Driver.zip
 
-## Where to Buy
-
-I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://www.tindie.com/products/theoldnet/rs232-serial-wifi-modem-for-vintage-computers-v3/)
 
 Overview
 --------
