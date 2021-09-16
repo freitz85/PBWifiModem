@@ -12,7 +12,19 @@ Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
 ## Where to Buy
 
-I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://www.tindie.com/products/theoldnet/rs232-serial-wifi-modem-for-vintage-computers-v3/)
+I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://theoldnet.com/store)
+
+
+## To Flash Firmware
+
+To flash the firmware you need three things:
+
+1) This firmware file: https://github.com/ssshake/vintage-computer-wifi-modem/raw/master/firmware/theoldnet_serial_wifi_modem/theoldnet_serial_wifi_modem.ino.nodemcu.bin
+
+2) This program: https://github.com/esphome/esphome-flasher/releases/tag/v1.3.0
+
+3) If on windows, this driver: https://www.silabs.com/documents/public/software/CP210x_Universal_Windows_Driver.zip
+
 
 Overview
 --------
