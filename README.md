@@ -14,6 +14,9 @@ Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
 I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://theoldnet.com/store)
 
+## Connect To YOUR Sytem
+
+I created this document showing the pin mappings for various systems, so that you can make you own custom adapter cables: https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/pin-mapping.md
 
 ## To Flash Firmware
 
