@@ -14,7 +14,7 @@ Unconfirmed if should be cross over or straight through. One person tests cross 
 
 ***
 
-### Sinclair - BT Connector - waiting on pin mapping from customer
+### Sinclair - BT Connector
 
 Sinclair QL BT631W to Male DB9 (which then plugs into your modem's female DB9 port):
 
