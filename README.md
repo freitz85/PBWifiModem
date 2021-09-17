@@ -20,7 +20,7 @@ Read the docs that ship with the modem here https://github.com/ssshake/vintage-c
 
 ## Connect To Your Sytem With a Custom Cable
 
-I created this document showing the pin mappings for various systems which do not have a DE/DB9 port. Thanks to members of the community to test these pinouts! 
+I created this document showing the pin mappings for various systems which do not have a DE/DB9 port. Thanks to members of the community for verifying these pinouts! 
 
 You can reference this make your own custom cable: https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/pin-mapping.md
 
