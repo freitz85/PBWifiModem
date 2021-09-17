@@ -1,8 +1,16 @@
 Welcome to the vintage-computer-wifi-modem wiki!
 
-### Tandy Coco 2 - Din 4
+### Macintosh - Mini Din 8
 
-![](https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/tandy-coco2-pinmapping.jpg?raw=true)
+![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/din8.db9.gif)
+
+***
+
+### Apple IIc - Din 5
+
+Unconfirmed if should be cross over or straight through. One person tests cross over and said it's good, the other said straight through is good. 
+
+![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/unnamed.jpg)
 
 ***
 
@@ -23,17 +31,8 @@ Sinclair QL BT631W to Male DB9 (which then plugs into your modem's female DB9 po
 
 ***
 
-### Apple IIc - Din 5
+### Tandy Coco 2 - Din 4
 
-Unconfirmed if should be cross over or straight through. One person tests cross over and said it's good, the other said straight through is good. 
-
-![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/unnamed.jpg)
+![](https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/tandy-coco2-pinmapping.jpg?raw=true)
 
 ***
-
-### Macintosh - Mini Din 8
-
-![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/din8.db9.gif)
-
-***
-
