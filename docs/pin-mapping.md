@@ -1,4 +1,4 @@
-This is a list of pin mappings so that you can make your own custom cables to adapt TheOldNet.com WIFI Modem to your system!
+This is a list of pin mappings so that you can make your own custom cables to adapt TheOldNet WIFI Modem to your system!
 
 ### Macintosh - Mini Din 8
 
