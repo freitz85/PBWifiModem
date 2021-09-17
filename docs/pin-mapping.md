@@ -1,4 +1,4 @@
-Welcome to the vintage-computer-wifi-modem wiki!
+This is a list of pin mappings so that you can make your own custom cables to adapt TheOldNet.com WIFI Modem to your system!
 
 ### Macintosh - Mini Din 8
 
@@ -34,5 +34,13 @@ Sinclair QL BT631W to Male DB9 (which then plugs into your modem's female DB9 po
 ### Tandy Coco 2 - Din 4
 
 ![](https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/tandy-coco2-pinmapping.jpg?raw=true)
+
+***
+
+### C64
+
+***
+
+### TRS-80
 
 ***
