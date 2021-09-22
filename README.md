@@ -1,5 +1,6 @@
-Virtual modem for ESP8266
+The Old Net - RS232 Serial WIFI Modem
 =========================
+![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/modemv3.jpg)
 
 Copyright (C) 2020 Richard Bettridge under GPLv3 license.
 
@@ -9,30 +10,40 @@ Copyright (C) 2016 Paul Rickards <rickards@gmail.com> under GPLv3 license.
 based on https://github.com/jsalin/esp8266_modem
 Copyright (C) 2015 Jussi Salin <salinjus@gmail.com> under GPLv3 license.
 
+## Where to Buy
+
+I make these modems on a custom PCB for a reasonable price. I try to keep the shipping low and the modem always in stock. You can get one at [TheOldNet Store](https://theoldnet.com/store)
+
+## User Manual
+
+Read the docs that ship with the modem here https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/Wifi%20Modem%20Welcome%20Guide.pdf
+
+## Connect To Your Sytem With a Custom Cable
+
+I created this document showing the pin mappings for various systems which do not have a DE/DB9 port. Thanks to members of the community for verifying these pinouts! 
+
+You can reference this to make your own custom cables https://github.com/ssshake/vintage-computer-wifi-modem/blob/master/docs/pin-mapping.md
+
+## To Flash Firmware
+
+To flash the firmware you need three things:
+
+1) This firmware file: https://github.com/ssshake/vintage-computer-wifi-modem/raw/master/firmware/theoldnet_serial_wifi_modem/theoldnet_serial_wifi_modem.ino.nodemcu.bin
+
+2) This program: https://github.com/esphome/esphome-flasher/releases/tag/v1.3.0
+
+3) If on windows, this driver: https://www.silabs.com/documents/public/software/CP210x_Universal_Windows_Driver.zip
+
+
 Overview
 --------
+TheOldNet.com is a set of services which aim to revitalize vintage computers by way of providing network access.
 
-ESP8266 is a tiny MCU module with WIFI. It already contains a virtual modem firmware by factory but I wanted to make one myself to support a wider range of baud rates. For example Commodore 64 requires 2400 or lower. Now it is also possible to add additional features in the future because this is open source. For example, translation tables for different character sets or file transfer protocol conversions on the fly with help of a buffer in MCU memory.
+The Serial WIFI Modem Emulator is a RS232 DB9 connection which provides a bridge to the internet over WIFI. This device does not show up like a wifi network card on the old device. Rather it shows up as a Hayes compatible dial up modem. Instead of dialing phone numbers to connect to remote computers, it connects to remote computers via telnet. 
 
-This was originally modified for use on the Commodore 64. The easiest device to use in the Sparkfun ESP8266 WiFi Shield. Originally designed for use with an Arduino, it already contains the 3.3v <-> 5v level shifters needed on TX and RX but also the 3.3v voltage regulator. https://www.sparkfun.com/products/13287
+This means that you do not need any special software. Any old terminal program works. Instead of dialing a phone number, you "dial" an IP. It's that simple and easy. 
 
-Additional features added include storing settings in NVRAM, managing active settings and stored settings, speed dial management, auto answer capabilities, automatic busy messages when in use for incoming connections, hardware flow control support, support for Commodore PET MCTerm (by Madison Computer) bit 8 ASCII translation, time in call on disconnect, web server on port 80 supporting mDNS.
-
-Wiring
-------
-
-Connect the SparkFun ESP8266 WiFi Shield as follows to your C64.
-
-* ESP8266 HW_RX pin to C64 TX User port pin M
-* ESP8266 HW_TX pin to C64 RX User port pins B & C
-* ESP8266 5V pin to C64 +5v User port pin 2
-* ESP8266 GND pin to C64 GND User port pin A & N
-
-Additionally, one wire jumper on the ESP8266 shield:
-
-* ESP8266 RST pin to ESP8266 GPIO pin 0
-
-Slide the UART switch to "HW".
+[![Tutorial Video](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/quickstartthumb_with-title.png)](https://www.youtube.com/watch?v=kwbJz3IVW5M)
 
 AT command examples
 -------------------
