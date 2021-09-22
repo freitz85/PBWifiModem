@@ -400,7 +400,7 @@ void setBaudRate(int inSpeed) {
     return;
   }
   int foundBaud = -1;
-    for (int i = 0; i < sizeof(bauds)/sizeof(bauds[0]); i++) {
+  for (int i = 0; i < sizeof(bauds)/sizeof(bauds[0]); i++) {
     if (inSpeed == bauds[i]) {
       foundBaud = i;
       break;
