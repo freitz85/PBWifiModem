@@ -120,7 +120,7 @@ static unsigned char ascToPetTable[256] = {
 #define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
 
 // Global variables
-String build = "01152021";
+String build = "09222021";
 String cmd = "";           // Gather a new AT command to this string from serial
 bool cmdMode = true;       // Are we in AT command mode or connected mode
 bool callConnected = false;// Are we currently in a call
@@ -400,7 +400,7 @@ void setBaudRate(int inSpeed) {
     return;
   }
   int foundBaud = -1;
-  for (int i = 0; i < sizeof(bauds); i++) {
+  for (int i = 0; i < sizeof(bauds)/sizeof(bauds[0]); i++) {
     if (inSpeed == bauds[i]) {
       foundBaud = i;
       break;
@@ -620,7 +620,7 @@ void welcome() {
   Serial.println("TheOldNet.com");
   Serial.println("SERIAL WIFI MODEM EMULATOR");
   Serial.println("BUILD " + build + "");
-  Serial.println("GPL3 GITHUB.COM/SSSHAKE/vintage-computer-wifi-modem");
+  Serial.println("GPL3 GITHUB.COM/SSSHAKE/VINTAGE-COMPUTER-WIFI-MODEM");
   Serial.println();
 }
 
@@ -668,7 +668,7 @@ void setup() {
   // Fetch baud rate from EEPROM
   serialspeed = EEPROM.read(BAUD_ADDRESS);
   // Check if it's out of bounds-- we have to be able to talk
-  if (serialspeed < 0 || serialspeed > sizeof(bauds)) {
+  if (serialspeed < 0 || serialspeed > sizeof(bauds)/sizeof(bauds[0])) {
     serialspeed = 0;
   }
 
