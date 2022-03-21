@@ -32,6 +32,13 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lwip/napt.h>
+#include <lwip/dns.h>
+#include <lwip/netif.h>
+#include <netif/ppp/ppp.h>
+#include <netif/ppp/pppos.h>
+
+#include <IPAddress.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
@@ -120,7 +127,7 @@ static unsigned char ascToPetTable[256] = {
 #define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
 
 // Global variables
-String build = "09222021";
+String build = "03202022-ppp";
 String cmd = "";           // Gather a new AT command to this string from serial
 bool cmdMode = true;       // Are we in AT command mode or connected mode
 bool callConnected = false;// Are we currently in a call
@@ -172,6 +179,130 @@ WiFiClient tcpClient;
 WiFiServer tcpServer(tcpServerPort);
 ESP8266WebServer webServer(80);
 MDNSResponder mdns;
+ppp_pcb *ppp;
+struct netif ppp_netif;
+
+/*
+ * PPPoS serial output callback
+ *
+ * ppp_pcb, PPP control block
+ * data, buffer to write to serial port
+ * len, length of the data buffer
+ * ctx, optional user-provided callback context pointer
+ *
+ * Return value: len if write succeed
+ */
+static u32_t ppp_output_cb(ppp_pcb *pcb, unsigned char *data, u32_t len, void *ctx) {
+  // need to buffer for the main loop()
+  // return uart_write(UART, data, len);
+  // write as much as is available in the TX buffer
+  // lwIP PPP should retry the rest later
+  if (cmdMode) {
+    // don't send anything if we're in command mode
+    return 0;
+  } else {
+    int buf_free = Serial.availableForWrite();
+    return Serial.write(data, min(buf_free, (int)len));
+  }
+}
+
+// fires when connection established or torn down
+void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
+  struct netif *pppif = ppp_netif(pcb);
+  LWIP_UNUSED_ARG(ctx);
+
+  switch(err_code) {
+    case PPPERR_NONE: {
+#if LWIP_DNS
+      const ip_addr_t *ns;
+#endif /* LWIP_DNS */
+      printf("status_cb: Connected\n");
+#if PPP_IPV4_SUPPORT
+      printf("   our_ipaddr  = %s\n", ipaddr_ntoa(&pppif->ip_addr));
+      printf("   his_ipaddr  = %s\n", ipaddr_ntoa(&pppif->gw));
+      printf("   netmask     = %s\n", ipaddr_ntoa(&pppif->netmask));
+#if LWIP_DNS
+      ns = dns_getserver(0);
+      printf("   dns1        = %s\n", ipaddr_ntoa(ns));
+      ns = dns_getserver(1);
+      printf("   dns2        = %s\n", ipaddr_ntoa(ns));
+#endif /* LWIP_DNS */
+#endif /* PPP_IPV4_SUPPORT */
+#if PPP_IPV6_SUPPORT
+      printf("   our6_ipaddr = %s\n", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
+#endif /* PPP_IPV6_SUPPORT */
+      break;
+    }
+    case PPPERR_PARAM: {
+      printf("status_cb: Invalid parameter\n");
+      break;
+    }
+    case PPPERR_OPEN: {
+      printf("status_cb: Unable to open PPP session\n");
+      break;
+    }
+    case PPPERR_DEVICE: {
+      printf("status_cb: Invalid I/O device for PPP\n");
+      break;
+    }
+    case PPPERR_ALLOC: {
+      printf("status_cb: Unable to allocate resources\n");
+      break;
+    }
+    case PPPERR_USER: {
+      printf("status_cb: User interrupt\n");
+      break;
+    }
+    case PPPERR_CONNECT: {
+      printf("status_cb: Connection lost\n");
+      break;
+    }
+    case PPPERR_AUTHFAIL: {
+      printf("status_cb: Failed authentication challenge\n");
+      break;
+    }
+    case PPPERR_PROTOCOL: {
+      printf("status_cb: Failed to meet protocol\n");
+      break;
+    }
+    case PPPERR_PEERDEAD: {
+      printf("status_cb: Connection timeout\n");
+      break;
+    }
+    case PPPERR_IDLETIMEOUT: {
+      printf("status_cb: Idle Timeout\n");
+      break;
+    }
+    case PPPERR_CONNECTTIME: {
+      printf("status_cb: Max connect time reached\n");
+      break;
+    }
+    case PPPERR_LOOPBACK: {
+      printf("status_cb: Loopback detected\n");
+      break;
+    }
+    default: {
+      printf("status_cb: Unknown error code %d\n", err_code);
+      break;
+    }
+  }
+
+/*
+ * This should be in the switch case, this is put outside of the switch
+ * case for example readability.
+ */
+
+  if (err_code == PPPERR_NONE) {
+    return;
+  }
+
+  /* ppp_close() was previously called, don't reconnect */
+  if (err_code == PPPERR_USER) {
+    ppp_free(ppp);
+    ppp = NULL;
+    return;
+  }
+}
 
 String connectTimeString() {
   unsigned long now = millis();
@@ -580,6 +711,7 @@ void displayHelp() {
   Serial.println("AT COMMAND SUMMARY:"); yield();
   Serial.println("DIAL HOST............: ATDTHOST:PORT"); yield();
   Serial.println("SPEED DIAL...........: ATDSN (N=0-9)"); yield();
+  Serial.println("PPP SESSION..........: ATDTPPP"); yield();
   Serial.println("SET SPEED DIAL.......: AT&ZN=HOST:PORT (N=0-9)"); yield();
   Serial.println("HANDLE TELNET........: ATNETN (N=0,1)"); yield();
   Serial.println("PET MCTERM TR........: ATPETN (N=0,1)"); yield();
@@ -720,6 +852,9 @@ String ipToString(IPAddress ip) {
 
 void hangUp() {
   tcpClient.stop();
+  if (ppp) {
+    ppp_close(ppp, 0);
+  }
   callConnected = false;
   setCarrier(callConnected);
   sendResult(R_NOCARRIER);
@@ -891,6 +1026,43 @@ void dialOut(String upCmd) {
   host.trim(); // remove leading or trailing spaces
   port.trim();
   Serial.print("DIALING "); Serial.print(host); Serial.print(":"); Serial.println(port);
+
+  if (host.equals("PPP")) {
+    if (ppp) {
+      Serial.println("PPP already active");
+      sendResult(R_ERROR);
+      return;
+    }
+    Serial.println("Starting PPP");
+    ppp = pppos_create(&ppp_netif, ppp_output_cb, ppp_status_cb, NULL);
+    ppp_set_usepeerdns(ppp, 0);
+    ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0));
+    ppp_set_ipcp_dnsaddr(ppp, 2, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1));
+
+#if PPP_AUTH_SUPPORT
+    ppp_set_auth(ppp, PPPAUTHTYPE_NONE, "", "");
+    ppp_set_auth_required(ppp, 0);
+#endif
+    ppp_set_ipcp_ouraddr(ppp, ip_2_ip4((const ip_addr_t*)WiFi.localIP()));
+    ppp_set_ipcp_hisaddr(ppp, ip_2_ip4((const ip_addr_t*)IPAddress(192,168,240,2)));
+    // "silent" menas wait for the other side to send a PPP LCP message
+    // ppp_set_silent(ppp, 1); 
+    err_t ppp_err;
+    if ((ppp_err = ppp_listen(ppp)) == PPPERR_NONE) {
+      sendResult(R_CONNECT);
+      connectTime = millis();
+      cmdMode = false;
+      callConnected = true;
+      setCarrier(callConnected);
+    } else {
+      Serial.println("ppp_listen failed\n");
+      ppp_status_cb(ppp, ppp_err, NULL);
+      ppp_close(ppp, 1);
+      sendResult(R_ERROR);
+    }
+    
+    return;
+  }
   char *hostChr = new char[host.length() + 1];
   host.toCharArray(hostChr, host.length() + 1);
   int portInt = port.toInt();
@@ -1462,7 +1634,11 @@ void loop()
         }
       }
       // Write the buffer to TCP finally
-      tcpClient.write(&txBuf[0], len);
+      if (ppp == NULL) {
+        tcpClient.write(&txBuf[0], len);
+      } else {
+        pppos_input(ppp, &txBuf[0], len);
+      }
       yield();
     }
 
@@ -1536,7 +1712,7 @@ void loop()
   }
 
   // Go to command mode if TCP disconnected and not in command mode
-  if ((!tcpClient.connected()) && (cmdMode == false) && callConnected == true)
+  if ((!tcpClient.connected() && ppp==NULL) && (cmdMode == false) && callConnected == true)
   {
     cmdMode = true;
     sendResult(R_NOCARRIER);
