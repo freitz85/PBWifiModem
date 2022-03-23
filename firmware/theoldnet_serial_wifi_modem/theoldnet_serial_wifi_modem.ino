@@ -32,6 +32,15 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#define XSTR(x) STR(x)
+#define STR(x) #x
+
+//#define LWIP_DEBUG 1
+//#define IP_DEBUG LWIP_DBG_ON
+//#define NAPT_DEBUG LWIP_DBG_ON
+//#define LWIP_DBG_TYPES_ON 0xFFU
+//#define ESP_LWIP
+
 #include <lwip/napt.h>
 #include <lwip/dns.h>
 #include <lwip/netif.h>
@@ -201,8 +210,9 @@ static u32_t ppp_output_cb(ppp_pcb *pcb, unsigned char *data, u32_t len, void *c
     // don't send anything if we're in command mode
     return 0;
   } else {
-    int buf_free = Serial.availableForWrite();
-    return Serial.write(data, min(buf_free, (int)len));
+    //int buf_free = Serial.availableForWrite();
+    //return Serial.write(data, min(buf_free, (int)len));
+    return Serial.write(data, (int)len);
   }
 }
 
@@ -213,6 +223,8 @@ void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
 
   switch(err_code) {
     case PPPERR_NONE: {
+      // No error == connected successfully
+#if DEBUG
 #if LWIP_DNS
       const ip_addr_t *ns;
 #endif /* LWIP_DNS */
@@ -226,11 +238,15 @@ void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
       printf("   dns1        = %s\n", ipaddr_ntoa(ns));
       ns = dns_getserver(1);
       printf("   dns2        = %s\n", ipaddr_ntoa(ns));
+ */
 #endif /* LWIP_DNS */
 #endif /* PPP_IPV4_SUPPORT */
 #if PPP_IPV6_SUPPORT
-      printf("   our6_ipaddr = %s\n", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
+      //printf("   our6_ipaddr = %s\n", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
 #endif /* PPP_IPV6_SUPPORT */
+#endif /* DEBUG */
+      // Enable NAT-ing this connection
+      ip_napt_enable(pppif->ip_addr.addr,1);
       break;
     }
     case PPPERR_PARAM: {
@@ -298,6 +314,7 @@ void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
 
   /* ppp_close() was previously called, don't reconnect */
   if (err_code == PPPERR_USER) {
+    hangUp();
     ppp_free(ppp);
     ppp = NULL;
     return;
@@ -771,6 +788,9 @@ void setup() {
   //digitalWrite(CTS_PIN, HIGH); // pull up
   setCarrier(false);
 
+  // the esp fork of LWIP doesn't automatically init when enabling nat, so just do it in setup
+  ip_napt_init(IP_NAPT_MAX, IP_PORTMAP_MAX);
+
   EEPROM.begin(LAST_ADDRESS + 1);
   delay(10);
 
@@ -851,9 +871,10 @@ String ipToString(IPAddress ip) {
 }
 
 void hangUp() {
-  tcpClient.stop();
   if (ppp) {
     ppp_close(ppp, 0);
+  } else {
+    tcpClient.stop();
   }
   callConnected = false;
   setCarrier(callConnected);
@@ -1036,8 +1057,8 @@ void dialOut(String upCmd) {
     Serial.println("Starting PPP");
     ppp = pppos_create(&ppp_netif, ppp_output_cb, ppp_status_cb, NULL);
     ppp_set_usepeerdns(ppp, 0);
-    ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0));
-    ppp_set_ipcp_dnsaddr(ppp, 2, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1));
+    ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0)));
+    ppp_set_ipcp_dnsaddr(ppp, 2, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1)));
 
 #if PPP_AUTH_SUPPORT
     ppp_set_auth(ppp, PPPAUTHTYPE_NONE, "", "");
