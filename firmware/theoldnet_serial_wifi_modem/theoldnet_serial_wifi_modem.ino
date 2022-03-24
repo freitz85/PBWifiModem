@@ -32,15 +32,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define XSTR(x) STR(x)
-#define STR(x) #x
-
-//#define LWIP_DEBUG 1
-//#define IP_DEBUG LWIP_DBG_ON
-//#define NAPT_DEBUG LWIP_DBG_ON
-//#define LWIP_DBG_TYPES_ON 0xFFU
-//#define ESP_LWIP
-
 #include <lwip/napt.h>
 #include <lwip/dns.h>
 #include <lwip/netif.h>
@@ -136,7 +127,7 @@ static unsigned char ascToPetTable[256] = {
 #define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
 
 // Global variables
-String build = "03202022-ppp";
+String build = "03232022-ppp";
 String cmd = "";           // Gather a new AT command to this string from serial
 bool cmdMode = true;       // Are we in AT command mode or connected mode
 bool callConnected = false;// Are we currently in a call
@@ -202,16 +193,17 @@ struct netif ppp_netif;
  * Return value: len if write succeed
  */
 static u32_t ppp_output_cb(ppp_pcb *pcb, unsigned char *data, u32_t len, void *ctx) {
-  // need to buffer for the main loop()
-  // return uart_write(UART, data, len);
-  // write as much as is available in the TX buffer
-  // lwIP PPP should retry the rest later
+  // need to buffer for the main loop()?
+  // lwIP PPP does not retry incomplete transmits
   if (cmdMode) {
     // don't send anything if we're in command mode
     return 0;
   } else {
+    // write as much as is available in the TX buffer
     //int buf_free = Serial.availableForWrite();
     //return Serial.write(data, min(buf_free, (int)len));
+    // write everything to Serial
+    // would a long write() mess with timing of the main loop()?
     return Serial.write(data, (int)len);
   }
 }
@@ -246,77 +238,58 @@ void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
 #endif /* PPP_IPV6_SUPPORT */
 #endif /* DEBUG */
       // Enable NAT-ing this connection
-      ip_napt_enable(pppif->ip_addr.addr,1);
+      ip_napt_enable(pppif->ip_addr.addr, 1);
       break;
     }
+    // anything other than NONE is an error, abort and go back to command mode
+    // fall through the switch and call hangUp() in the default case
     case PPPERR_PARAM: {
-      printf("status_cb: Invalid parameter\n");
-      break;
+      sendString("PPP: Invalid parameter");
     }
     case PPPERR_OPEN: {
-      printf("status_cb: Unable to open PPP session\n");
-      break;
+      sendString("PPP: Unable to open PPP session");
     }
     case PPPERR_DEVICE: {
-      printf("status_cb: Invalid I/O device for PPP\n");
-      break;
+      sendString("PPP: Invalid I/O device");
     }
     case PPPERR_ALLOC: {
-      printf("status_cb: Unable to allocate resources\n");
-      break;
+      sendString("PPP: Unable to allocate resources");
     }
-    case PPPERR_USER: {
-      printf("status_cb: User interrupt\n");
-      break;
+    case PPPERR_USER: { // clean disconnect
+      //sendString("PPP: shutdown");
     }
     case PPPERR_CONNECT: {
-      printf("status_cb: Connection lost\n");
-      break;
+      sendString("PPP: Connection lost");
     }
     case PPPERR_AUTHFAIL: {
-      printf("status_cb: Failed authentication challenge\n");
-      break;
+      sendString("PPP: Failed authentication challenge");
     }
     case PPPERR_PROTOCOL: {
-      printf("status_cb: Failed to meet protocol\n");
-      break;
+      sendString("PPP: Failed to meet protocol");
     }
     case PPPERR_PEERDEAD: {
-      printf("status_cb: Connection timeout\n");
-      break;
+      sendString("PPP: Connection timeout");
     }
     case PPPERR_IDLETIMEOUT: {
-      printf("status_cb: Idle Timeout\n");
-      break;
+      sendString("PPP: Idle Timeout");
     }
     case PPPERR_CONNECTTIME: {
-      printf("status_cb: Max connect time reached\n");
-      break;
+      sendString("PPP: Max connect time reached");
     }
     case PPPERR_LOOPBACK: {
-      printf("status_cb: Loopback detected\n");
-      break;
+      sendString("PPP: Loopback detected");
     }
     default: {
-      printf("status_cb: Unknown error code %d\n", err_code);
+      hangUp();
       break;
     }
-  }
-
-/*
- * This should be in the switch case, this is put outside of the switch
- * case for example readability.
- */
-
-  if (err_code == PPPERR_NONE) {
-    return;
   }
 
   /* ppp_close() was previously called, don't reconnect */
   if (err_code == PPPERR_USER) {
-    hangUp();
-    ppp_free(ppp);
-    ppp = NULL;
+    if (ppp_free(ppp)) {
+      ppp = NULL;
+    }
     return;
   }
 }
@@ -1057,8 +1030,8 @@ void dialOut(String upCmd) {
     Serial.println("Starting PPP");
     ppp = pppos_create(&ppp_netif, ppp_output_cb, ppp_status_cb, NULL);
     ppp_set_usepeerdns(ppp, 0);
-    ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0)));
-    ppp_set_ipcp_dnsaddr(ppp, 2, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1)));
+    ppp_set_ipcp_dnsaddr(ppp, 0, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0)));
+    ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1)));
 
 #if PPP_AUTH_SUPPORT
     ppp_set_auth(ppp, PPPAUTHTYPE_NONE, "", "");
