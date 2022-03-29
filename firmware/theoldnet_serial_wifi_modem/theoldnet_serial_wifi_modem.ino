@@ -217,20 +217,17 @@ void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
     case PPPERR_NONE: {
       // No error == connected successfully
 #if DEBUG
-#if LWIP_DNS
-      const ip_addr_t *ns;
-#endif /* LWIP_DNS */
       printf("status_cb: Connected\n");
 #if PPP_IPV4_SUPPORT
       printf("   our_ipaddr  = %s\n", ipaddr_ntoa(&pppif->ip_addr));
       printf("   his_ipaddr  = %s\n", ipaddr_ntoa(&pppif->gw));
       printf("   netmask     = %s\n", ipaddr_ntoa(&pppif->netmask));
 #if LWIP_DNS
+      const ip_addr_t *ns;
       ns = dns_getserver(0);
       printf("   dns1        = %s\n", ipaddr_ntoa(ns));
       ns = dns_getserver(1);
       printf("   dns2        = %s\n", ipaddr_ntoa(ns));
- */
 #endif /* LWIP_DNS */
 #endif /* PPP_IPV4_SUPPORT */
 #if PPP_IPV6_SUPPORT
@@ -625,7 +622,11 @@ void displayNetworkStatus() {
   Serial.print("WEB CONFIG.: HTTP://"); Serial.println(WiFi.localIP()); yield();
   Serial.print("CALL STATUS: "); yield();
   if (callConnected) {
-    Serial.print("CONNECTED TO "); Serial.println(ipToString(tcpClient.remoteIP())); yield();
+    if (ppp) {
+      Serial.print("CONNECTED TO PPP"); yield();
+    } else {
+      Serial.print("CONNECTED TO "); Serial.println(ipToString(tcpClient.remoteIP())); yield();
+    }
     Serial.print("CALL LENGTH: "); Serial.println(connectTimeString()); yield();
   } else {
     Serial.println("NOT CONNECTED");
@@ -913,7 +914,11 @@ void handleRoot() {
   page.concat("\nCALL STATUS: ");
   if (callConnected) {
     page.concat("CONNECTED TO ");
-    page.concat(ipToString(tcpClient.remoteIP()));
+    if (ppp) {
+      page.concat("PPP");
+    } else {
+      page.concat(ipToString(tcpClient.remoteIP()));
+    }
     page.concat("\nCALL LENGTH: "); page.concat(connectTimeString()); yield();
   } else {
     page.concat("NOT CONNECTED");
@@ -1019,7 +1024,6 @@ void dialOut(String upCmd) {
   }
   host.trim(); // remove leading or trailing spaces
   port.trim();
-  Serial.print("DIALING "); Serial.print(host); Serial.print(":"); Serial.println(port);
 
   if (host.equals("PPP")) {
     if (ppp) {
@@ -1027,7 +1031,7 @@ void dialOut(String upCmd) {
       sendResult(R_ERROR);
       return;
     }
-    Serial.println("Starting PPP");
+    Serial.println("Starting PPP session");
     ppp = pppos_create(&ppp_netif, ppp_output_cb, ppp_status_cb, NULL);
     ppp_set_usepeerdns(ppp, 0);
     ppp_set_ipcp_dnsaddr(ppp, 0, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0)));
@@ -1039,10 +1043,9 @@ void dialOut(String upCmd) {
 #endif
     ppp_set_ipcp_ouraddr(ppp, ip_2_ip4((const ip_addr_t*)WiFi.localIP()));
     ppp_set_ipcp_hisaddr(ppp, ip_2_ip4((const ip_addr_t*)IPAddress(192,168,240,2)));
-    // "silent" menas wait for the other side to send a PPP LCP message
-    // ppp_set_silent(ppp, 1); 
     err_t ppp_err;
-    if ((ppp_err = ppp_listen(ppp)) == PPPERR_NONE) {
+    ppp_err = ppp_listen(ppp);
+    if (ppp_err == PPPERR_NONE) {
       sendResult(R_CONNECT);
       connectTime = millis();
       cmdMode = false;
@@ -1057,6 +1060,7 @@ void dialOut(String upCmd) {
     
     return;
   }
+  Serial.print("DIALING "); Serial.print(host); Serial.print(":"); Serial.println(port);
   char *hostChr = new char[host.length() + 1];
   host.toCharArray(hostChr, host.length() + 1);
   int portInt = port.toInt();
@@ -1627,11 +1631,11 @@ void loop()
           if (txBuf[i] > 127) txBuf[i]-= 128;
         }
       }
-      // Write the buffer to TCP finally
-      if (ppp == NULL) {
-        tcpClient.write(&txBuf[0], len);
-      } else {
+      // Write the buffer to PPP or TCP finally
+      if (ppp) {
         pppos_input(ppp, &txBuf[0], len);
+      } else {
+        tcpClient.write(&txBuf[0], len);
       }
       yield();
     }
@@ -1705,7 +1709,7 @@ void loop()
     }
   }
 
-  // Go to command mode if TCP disconnected and not in command mode
+  // Go to command mode if both TCP and PPP are disconnected and not in command mode
   if ((!tcpClient.connected() && ppp==NULL) && (cmdMode == false) && callConnected == true)
   {
     cmdMode = true;
