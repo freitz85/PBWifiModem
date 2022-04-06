@@ -54,6 +54,7 @@ AT command examples
 * Connect to WiFi: ATC1
 * Save current settigns to NVRAM: AT&W
 * Connect by TCP: ATDTsome.bbs.com:23
+* Connect by PPP: ATDTPPP
 * Disable telnet command handling: ATNET0
 * Get my IP: ATIP
 * Make a HTTP GET request: ATGEThttp://host:80/path
