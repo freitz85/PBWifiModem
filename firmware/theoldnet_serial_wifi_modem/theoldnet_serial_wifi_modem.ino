@@ -1033,7 +1033,8 @@ void dialOut(String upCmd) {
     }
     Serial.println("Starting PPP session");
     ppp = pppos_create(&ppp_netif, ppp_output_cb, ppp_status_cb, NULL);
-    ppp_set_usepeerdns(ppp, 0);
+    // usepeerdns also means offer our configured DNS servers during negotiation
+    ppp_set_usepeerdns(ppp, 1);
     ppp_set_ipcp_dnsaddr(ppp, 0, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0)));
     ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1)));
 
