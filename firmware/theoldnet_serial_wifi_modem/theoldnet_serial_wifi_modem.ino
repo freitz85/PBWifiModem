@@ -32,6 +32,13 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <lwip/napt.h>
+#include <lwip/dns.h>
+#include <lwip/netif.h>
+#include <netif/ppp/ppp.h>
+#include <netif/ppp/pppos.h>
+
+#include <IPAddress.h>
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 #include <EEPROM.h>
@@ -120,7 +127,7 @@ static unsigned char ascToPetTable[256] = {
 #define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
 
 // Global variables
-String build = "03102022";
+String build = "04182022";
 String cmd = "";           // Gather a new AT command to this string from serial
 bool cmdMode = true;       // Are we in AT command mode or connected mode
 bool callConnected = false;// Are we currently in a call
@@ -172,6 +179,115 @@ WiFiClient tcpClient;
 WiFiServer tcpServer(tcpServerPort);
 ESP8266WebServer webServer(80);
 MDNSResponder mdns;
+ppp_pcb *ppp;
+struct netif ppp_netif;
+
+/*
+ * PPPoS serial output callback
+ *
+ * ppp_pcb, PPP control block
+ * data, buffer to write to serial port
+ * len, length of the data buffer
+ * ctx, optional user-provided callback context pointer
+ *
+ * Return value: len if write succeed
+ */
+static u32_t ppp_output_cb(ppp_pcb *pcb, unsigned char *data, u32_t len, void *ctx) {
+  // need to buffer for the main loop()?
+  if (cmdMode) {
+    // don't send anything if we're in command mode
+    return 0;
+  } else {
+    // does a long write() mess with timing of the main loop()?
+    // or risk triggering the watchdog timer? 
+    return Serial.write(data, len);
+  }
+}
+
+// fires when connection established or torn down
+void ppp_status_cb(ppp_pcb *pcb, int err_code, void *ctx) {
+  struct netif *pppif = ppp_netif(pcb);
+  LWIP_UNUSED_ARG(ctx);
+
+  switch(err_code) {
+    case PPPERR_NONE: // No error == connected successfully
+#if DEBUG
+      Serial.println(F("status_cb: Connected"));
+#if PPP_IPV4_SUPPORT
+      Serial.print(F("   our_ipaddr  = "));
+      Serial.println(ipaddr_ntoa(&pppif->ip_addr));
+      Serial.print(F("   his_ipaddr  = "));
+      Serial.println(ipaddr_ntoa(&pppif->gw));
+      Serial.print(F("   netmask     = "));
+      Serial.println(ipaddr_ntoa(&pppif->netmask));
+#if LWIP_DNS
+      const ip_addr_t *ns;
+      ns = dns_getserver(0);
+      Serial.print(F("   dns1        = "));
+      Serial.println(ipaddr_ntoa(ns));
+      ns = dns_getserver(1);
+      Serial.print(F("   dns2        = "));
+      Serial.println(ipaddr_ntoa(ns));
+#endif /* LWIP_DNS */
+#endif /* PPP_IPV4_SUPPORT */
+#if PPP_IPV6_SUPPORT
+      //printf("   our6_ipaddr = %s\n", ip6addr_ntoa(netif_ip6_addr(pppif, 0)));
+#endif /* PPP_IPV6_SUPPORT */
+#endif /* DEBUG */
+      // Enable NAT-ing this connection
+      ip_napt_enable(pppif->ip_addr.addr, 1);
+      break;
+    case PPPERR_USER: // clean disconnect
+      // sendString(F("PPP: shutdown"));
+      if (ppp_free(ppp) == 0) {
+        ppp = NULL;
+        // sendString(F("PPP: freed"));
+      } else {
+        sendString(F("ppp_free() failed"));
+      }
+      break;
+    // anything other than NONE or USER is an error, abort and go back to command mode
+    case PPPERR_PARAM:
+      sendString(F("PPP: Invalid parameter"));
+      break;
+    case PPPERR_OPEN:
+      sendString(F("PPP: Unable to open PPP session"));
+      break;
+    case PPPERR_DEVICE:
+      sendString(F("PPP: Invalid I/O device"));
+      break;
+    case PPPERR_ALLOC:
+      sendString(F("PPP: Unable to allocate resources"));
+      break;
+    case PPPERR_CONNECT:
+      sendString(F("PPP: Connection lost"));
+      break;
+    case PPPERR_AUTHFAIL:
+      sendString(F("PPP: Failed authentication challenge"));
+      break;
+    case PPPERR_PROTOCOL:
+      sendString(F("PPP: Failed to meet protocol"));
+      break;
+    case PPPERR_PEERDEAD:
+      sendString(F("PPP: Connection timeout"));
+      break;
+    case PPPERR_IDLETIMEOUT:
+      sendString(F("PPP: Idle Timeout"));
+      break;
+    case PPPERR_CONNECTTIME:
+      sendString(F("PPP: Max connect time reached"));
+      break;
+    case PPPERR_LOOPBACK:
+      sendString(F("PPP: Loopback detected"));
+      break;
+  }
+
+  // for any error other than USER or NONE, hang up
+  if (!((err_code == PPPERR_USER) || (err_code == PPPERR_NONE))) {
+    hangUp();
+    cmdMode = true;
+  }
+}
 
 String connectTimeString() {
   unsigned long now = millis();
@@ -504,7 +620,11 @@ void displayNetworkStatus() {
   Serial.print("WEB CONFIG.: HTTP://"); Serial.println(WiFi.localIP()); yield();
   Serial.print("CALL STATUS: "); yield();
   if (callConnected) {
-    Serial.print("CONNECTED TO "); Serial.println(ipToString(tcpClient.remoteIP())); yield();
+    if (ppp) {
+      Serial.print("CONNECTED TO PPP"); yield();
+    } else {
+      Serial.print("CONNECTED TO "); Serial.println(ipToString(tcpClient.remoteIP())); yield();
+    }
     Serial.print("CALL LENGTH: "); Serial.println(connectTimeString()); yield();
   } else {
     Serial.println("NOT CONNECTED");
@@ -580,6 +700,7 @@ void displayHelp() {
   Serial.println("AT COMMAND SUMMARY:"); yield();
   Serial.println("DIAL HOST............: ATDTHOST:PORT"); yield();
   Serial.println("SPEED DIAL...........: ATDSN (N=0-9)"); yield();
+  Serial.println("PPP SESSION..........: ATDTPPP"); yield();
   Serial.println("SET SPEED DIAL.......: AT&ZN=HOST:PORT (N=0-9)"); yield();
   Serial.println("HANDLE TELNET........: ATNETN (N=0,1)"); yield();
   Serial.println("PET MCTERM TR........: ATPETN (N=0,1)"); yield();
@@ -639,6 +760,9 @@ void setup() {
   pinMode(CTS_PIN, INPUT);
   //digitalWrite(CTS_PIN, HIGH); // pull up
   setCarrier(false);
+
+  // the esp fork of LWIP doesn't automatically init when enabling nat, so just do it in setup
+  ip_napt_init(IP_NAPT_MAX, IP_PORTMAP_MAX);
 
   EEPROM.begin(LAST_ADDRESS + 1);
   delay(10);
@@ -720,7 +844,11 @@ String ipToString(IPAddress ip) {
 }
 
 void hangUp() {
-  tcpClient.stop();
+  if (ppp) {
+    ppp_close(ppp, 0);
+  } else {
+    tcpClient.stop();
+  }
   callConnected = false;
   setCarrier(callConnected);
   sendResult(R_NOCARRIER);
@@ -785,7 +913,11 @@ void handleRoot() {
   page.concat("\nCALL STATUS: ");
   if (callConnected) {
     page.concat("CONNECTED TO ");
-    page.concat(ipToString(tcpClient.remoteIP()));
+    if (ppp) {
+      page.concat("PPP");
+    } else {
+      page.concat(ipToString(tcpClient.remoteIP()));
+    }
     page.concat("\nCALL LENGTH: "); page.concat(connectTimeString()); yield();
   } else {
     page.concat("NOT CONNECTED");
@@ -891,6 +1023,42 @@ void dialOut(String upCmd) {
   }
   host.trim(); // remove leading or trailing spaces
   port.trim();
+
+  if (host.equals("PPP")) {
+    if (ppp) {
+      Serial.println("PPP already active");
+      sendResult(R_ERROR);
+      return;
+    }
+    ppp = pppos_create(&ppp_netif, ppp_output_cb, ppp_status_cb, NULL);
+    // usepeerdns also means offer our configured DNS servers during negotiation
+    ppp_set_usepeerdns(ppp, 1);
+    ppp_set_ipcp_dnsaddr(ppp, 0, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(0)));
+    ppp_set_ipcp_dnsaddr(ppp, 1, ip_2_ip4((const ip_addr_t*)WiFi.dnsIP(1)));
+
+#if PPP_AUTH_SUPPORT
+    ppp_set_auth(ppp, PPPAUTHTYPE_NONE, "", "");
+    ppp_set_auth_required(ppp, 0);
+#endif
+    ppp_set_ipcp_ouraddr(ppp, ip_2_ip4((const ip_addr_t*)WiFi.localIP()));
+    ppp_set_ipcp_hisaddr(ppp, ip_2_ip4((const ip_addr_t*)IPAddress(192,168,240,2)));
+    err_t ppp_err;
+    ppp_err = ppp_listen(ppp);
+    if (ppp_err == PPPERR_NONE) {
+      sendResult(R_CONNECT);
+      connectTime = millis();
+      cmdMode = false;
+      callConnected = true;
+      setCarrier(callConnected);
+    } else {
+      Serial.println("ppp_listen failed\n");
+      ppp_status_cb(ppp, ppp_err, NULL);
+      ppp_close(ppp, 1);
+      sendResult(R_ERROR);
+    }
+    
+    return;
+  }
   Serial.print("DIALING "); Serial.print(host); Serial.print(":"); Serial.println(port);
   char *hostChr = new char[host.length() + 1];
   host.toCharArray(hostChr, host.length() + 1);
@@ -1510,8 +1678,15 @@ void loop()
           if (txBuf[i] > 127) txBuf[i]-= 128;
         }
       }
-      // Write the buffer to TCP finally
-      tcpClient.write(&txBuf[0], len);
+      // Write the buffer to PPP or TCP finally
+      if (ppp)
+      {
+        pppos_input(ppp, &txBuf[0], len);
+      }
+      else
+      {
+        tcpClient.write(&txBuf[0], len);
+      }
       yield();
     }
 
@@ -1584,8 +1759,8 @@ void loop()
     }
   }
 
-  // Go to command mode if TCP disconnected and not in command mode
-  if ((!tcpClient.connected()) && (cmdMode == false) && callConnected == true)
+  // Go to command mode if both TCP and PPP are disconnected and not in command mode
+  if ((!tcpClient.connected() && ppp == NULL) && (cmdMode == false) && callConnected == true)
   {
     cmdMode = true;
     sendResult(R_NOCARRIER);
