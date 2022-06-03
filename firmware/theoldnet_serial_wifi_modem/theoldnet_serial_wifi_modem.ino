@@ -1024,7 +1024,7 @@ void dialOut(String upCmd) {
   host.trim(); // remove leading or trailing spaces
   port.trim();
 
-  if (host.equals("PPP")) {
+  if (host.equals("PPP") || host.equals("777")) {
     if (ppp) {
       Serial.println("PPP already active");
       sendResult(R_ERROR);
