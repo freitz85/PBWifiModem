@@ -122,6 +122,7 @@ static unsigned char ascToPetTable[256] = {
 
 #define SWITCH_PIN 0       // GPIO0 (programmind mode pin)
 #define LED_PIN 16          // Status LED
+#define LED_ESP_PIN 2
 #define DCD_PIN 2          // DCD Carrier Status
 #define RTS_PIN 4         // RTS Request to Send, connect to host's CTS pin
 #define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
@@ -449,6 +450,7 @@ int checkButton() {
     //Serial.print("\r\n Reset To 300 BPS In " + String(remaining) + "");
     delay(250);
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+    digitalWrite(LED_ESP_PIN, !digitalRead(LED_ESP_PIN));
     yield();
   }
   if (millis() - time > 5000) {
@@ -462,6 +464,7 @@ int checkButton() {
     while (digitalRead(SWITCH_PIN) == LOW) {
       delay(50);
       digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+      digitalWrite(LED_ESP_PIN, !digitalRead(LED_ESP_PIN));
       yield();
     }
     return 1;
@@ -487,7 +490,7 @@ void connectWiFi() {
   }
   Serial.println();
   if (i == 21) {
-    Serial.print("COULD NOT CONNET TO "); Serial.println(ssid);
+    Serial.print("COULD NOT CONNECT TO "); Serial.println(ssid);
     WiFi.disconnect();
     updateLed();
   } else {
