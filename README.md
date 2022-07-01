@@ -1,3 +1,5 @@
+**TODO: make this documentation more user friendly and less nerdy**
+
 The Old Net - RS232 Serial WIFI Modem
 =========================
 ![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/modemv3.jpg)
