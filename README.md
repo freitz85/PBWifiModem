@@ -1,3 +1,7 @@
+**TODO: make this documentation more user friendly and less nerdy**
+
+This repository contains the Hayes Modem & PPP firmware for The Old Net Serial to WIFI Adapter. If you do not care about the source code and just want the firmware, supporting tools and documentation please direct your attention here instead: [https://github.com/TheOldNet/theoldnet-wifi-firmware-binaries](https://github.com/TheOldNet/theoldnet-wifi-firmware-binaries)
+
 The Old Net - RS232 Serial WIFI Modem
 =========================
 ![](https://raw.githubusercontent.com/ssshake/vintage-computer-wifi-modem/master/docs/modemv3.jpg)
@@ -54,7 +58,7 @@ AT command examples
 * Connect to WiFi: ATC1
 * Save current settigns to NVRAM: AT&W
 * Connect by TCP: ATDTsome.bbs.com:23
-* Connect by PPP: ATDTPPP
+* Connect by PPP: ATDTPPP or ATDT777 (for systems which cannot dial letters)
 * Disable telnet command handling: ATNET0
 * Get my IP: ATIP
 * Make a HTTP GET request: ATGEThttp://host:80/path
