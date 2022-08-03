@@ -10,7 +10,7 @@ This is a list of pin mappings so that you can make your own custom cables to ad
 
 Unconfirmed if should be cross over or straight through. One person tests cross over and said it's good, the other said straight through is good. 
 
-One contributor said this
+Contributor junkjunker did some testing and said this
 
 ```
 Regarding the confusion on vintage-computer-wifi-modem/docs/pin-mapping.md about 
