@@ -13,7 +13,9 @@ Unconfirmed if should be cross over or straight through. One person tests cross 
 One contributor said this
 
 ```
-Regarding the confusion on vintage-computer-wifi-modem/docs/pin-mapping.md about the Apple IIc cable and whether the pins should cross or be straight through, I can confirm that a cross over cable works on the Apple IIc's Modem Port (labelled "2") with ADTPro.
+Regarding the confusion on vintage-computer-wifi-modem/docs/pin-mapping.md about 
+the Apple IIc cable and whether the pins should cross or be straight through, 
+I can confirm that a cross over cable works on the Apple IIc's Modem Port (labelled "2") with ADTPro.
 
 Null Modem Cable:
 DIN 5 ---> DB9
