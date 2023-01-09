@@ -45,7 +45,7 @@ void ota_firmware_loop(){
     ESPhttpUpdate.onProgress(update_progress);
     ESPhttpUpdate.onError(update_error);
 
-    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/theoldnet-firmware.bin");
+    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/ota/update.bin");
     // Or:
     //t_httpUpdate_return ret = ESPhttpUpdate.update(client, "server", 80, "file.bin");
 
