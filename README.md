@@ -113,3 +113,31 @@ Example communication
                         and is hosted at Nebula, Finland.
 
 
+
+
+Gopher Usage
+=========================
+
+This PR contains a small change which:
+
++ Implements logic required to make gopher requests
++ Adds the gopher command to the help documentation
++ Updates the build number
+
+The code used for making Gopher requests is based on the HTTP GET code, but with the necessary changes made for the Gopher protocol.
+
+**Usage**
+
+The command can be used like so:
+
+`ATGPHgopher://gopherpedia.com`
+
+Selectors can be added after the URL:
+
+`ATGPHgopher://gopherpedia.com/Gopher_(protocol)`
+
+Port is optional and will default to the standard gopher port of 70.
+
+**Working Demo**
+
+https://www.youtube.com/watch?v=MX2fRlIGkQk
