@@ -124,16 +124,36 @@ static unsigned char ascToPetTable[256] = {
 #define LED_PIN 16          // Status LED
 #define LED_ESP_PIN 2
 #define DCD_PIN 2          // DCD Carrier Status
-#define RTS_PIN 4         // RTS Request to Send, connect to host's CTS pin
-#define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
+//#define RTS_PIN 4         // RTS Request to Send, connect to host's CTS pin
+//#define CTS_PIN 5         // CTS Clear to Send, connect to host's RTS pin
+
+
+//Then when a DTE (such as a computer) wants to stop the data sending into it, it sets RTS to LOW. 
+//The low state of the RTS (Request To Send) signal equal to -12V means "Do not send to me" (stop sending). 
+//When the computer is ready to receive some bytes it sets RTS to HIGH (+12V) and the flow of bytes to it resumes. 
+//Flow control signals are always sent in a direction opposite to the flow of bytes that is being controlled. 
+//DCE equipment (modems) works the same way but sends the stop signal out the CTS pin. 
+//If you don't need the flow control then you may not connect corresponding pins. In the most simple case you may connect 3 pins only.
+
+//https://www.best-microcontroller-projects.com/how-rs232-works.html#handshake
+//Looks like for bidirectional flow control DTR and DSR will be required. 
+//!!! PIN 13 is labelled as CTS on the PCB and 15 as RTS. I believe these are backwards now by looking at a DTE to DCS straight through diagram
+//I believe the hardware traces are correct:
+//RTS 13 -> R2OUT -> R2IN -> DB9 PIN 7
+//CTS 15 -> T2IN -> T2OUT -> DB9 PIN 8
+//RTS IS INBOUND FROM PC
+//CTS IS OUTBOUND FROM PC
+#define RTS_PIN 13         // RTS Request to Send, connect to host's CTS pin RTS is DB9 PIN 7
+#define CTS_PIN 15         // CTS Clear to Send, connect to host's RTS pin CTS is DB9 PIN 8
 
 // Global variables
-String build = "04182022";
+String build = "01092023";
 String cmd = "";           // Gather a new AT command to this string from serial
 bool cmdMode = true;       // Are we in AT command mode or connected mode
 bool callConnected = false;// Are we currently in a call
 bool telnet = false;       // Is telnet control code handling enabled
 bool verboseResults = false;
+bool firmwareUpdating = false;
 //#define DEBUG 1          // Print additional debug information to serial channel
 #undef DEBUG
 #define LISTEN_PORT 23   // Listen to this if not connected. Set to zero to disable.
@@ -164,7 +184,7 @@ unsigned long connectTime = 0;
 bool petTranslate = false; // Fix PET MCTerm 1.26C Pet->ASCII encoding to actual ASCII
 bool hex = false;
 enum flowControl_t { F_NONE, F_HARDWARE, F_SOFTWARE };
-byte flowControl = F_SOFTWARE;      // Use flow control
+byte flowControl = F_NONE;      // Use flow control
 bool txPaused = false;          // Has flow control asked us to pause?
 enum pinPolarity_t { P_INVERTED, P_NORMAL }; // Is LOW (0) or HIGH (1) active?
 byte pinPolarity = P_NORMAL;
@@ -731,6 +751,7 @@ void displayHelp() {
   Serial.println("HANGUP........: ATH"); yield();
   Serial.println("ENTER CMD MODE: +++"); yield();
   Serial.println("EXIT CMD MODE.: ATO"); yield();
+  Serial.println("UDPATE FIRMWARE.: AT$FW"); yield();
   Serial.println("QUERY MOST COMMANDS FOLLOWED BY '?'"); yield();
 }
 
@@ -757,11 +778,17 @@ void setup() {
   digitalWrite(LED_PIN, HIGH); // off
   pinMode(SWITCH_PIN, INPUT);
   digitalWrite(SWITCH_PIN, HIGH);
-  pinMode(DCD_PIN, OUTPUT);
-  pinMode(RTS_PIN, OUTPUT);
-  digitalWrite(RTS_PIN, HIGH); // ready to receive data
-  pinMode(CTS_PIN, INPUT);
-  //digitalWrite(CTS_PIN, HIGH); // pull up
+//  pinMode(DCD_PIN, OUTPUT);
+
+  //Research
+  //7 RTS is High from the computer at 9v on other modem
+  //8 CTS is high from modem as either output high or input high, not sure
+  
+  //Consider disabling/ignoring this. PC is going to saw RTS high, but do we care since flow control isn't actually implimented in code yet
+//  pinMode(RTS_PIN, INPUT); //this was set to output but the diagrams I look at seem to say a modem's rts pin is input
+//  digitalWrite(RTS_PIN, LOW); // ready to receive data // disabled this because it's input, maybe this is wrong
+  pinMode(CTS_PIN, OUTPUT); //this was set to input but the diagrams I look at seem to say a modem's cts pin is output
+  digitalWrite(CTS_PIN, HIGH); // pull up//old comment
   setCarrier(false);
 
   // the esp fork of LWIP doesn't automatically init when enabling nat, so just do it in setup
@@ -806,22 +833,23 @@ void setup() {
   //unsigned long startMillis = millis();
   //while (c != 8 && c != 127 && c!= 20) { // Check for the backspace key to begin
   //while (c != 32) { // Check for space to begin
-  while (c != 0x0a && c != 0x0d) {
-    if (Serial.available() > 0) {
-      c = Serial.read();
-      if (petTranslate == true){
-        if (c > 127) c-= 128;
-      }
-    }
-    if (checkButton() == 1) {
-      break; // button pressed, we're setting to 300 baud and moving on
-    }
-    //if (millis() - startMillis > 2000) {
-      //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-      //startMillis = millis();
-    //}
-    yield();
-  }
+//disabled the wait before welcome
+//  while (c != 0x0a && c != 0x0d) {
+//    if (Serial.available() > 0) {
+//      c = Serial.read();
+//      if (petTranslate == true){
+//        if (c > 127) c-= 128;
+//      }
+//    }
+//    if (checkButton() == 1) {
+//      break; // button pressed, we're setting to 300 baud and moving on
+//    }
+//    //if (millis() - startMillis > 2000) {
+//      //digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+//      //startMillis = millis();
+//    //}
+//    yield();
+//  }
 
   welcome();
 
@@ -1277,6 +1305,10 @@ void command()
     sendResult(R_OK);
   }
 
+  else if (upCmd == "AT$FW") {
+    firmwareUpdating = true;
+  }
+
   /**** Set or display a speed dial number ****/
   else if (upCmd.indexOf("AT&Z") == 0) {
     byte speedNum = upCmd.substring(4, 5).toInt();
@@ -1555,10 +1587,11 @@ void command()
 // http://electronics.stackexchange.com/questions/38022/what-is-rts-and-cts-flow-control
 void handleFlowControl() {
   if (flowControl == F_NONE) return;
-  if (flowControl == F_HARDWARE) {
-    if (digitalRead(CTS_PIN) == pinPolarity) txPaused = true;
-    else txPaused = false;
-  }
+  //disabled in case it's accidentally pausing
+//  if (flowControl == F_HARDWARE) {
+//    if (digitalRead(CTS_PIN) == pinPolarity) txPaused = true;
+//    else txPaused = false;
+//  }
   if (flowControl == F_SOFTWARE) {
     
   }
@@ -1569,6 +1602,11 @@ void handleFlowControl() {
 */
 void loop()
 {
+  if (firmwareUpdating == true){
+    ota_firmware_loop();
+    return;
+  }
+  
   // Check flow control
   handleFlowControl();
     
