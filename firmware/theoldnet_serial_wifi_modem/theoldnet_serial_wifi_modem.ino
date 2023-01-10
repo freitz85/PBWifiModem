@@ -108,7 +108,7 @@
 #define CTS_PIN 15         // CTS Clear to Send, connect to host's RTS pin CTS is DB9 PIN 8
 
 // Global variables
-String build = "01092023";
+String build = "01102023";
 String cmd = "";           // Gather a new AT command to this string from serial
 bool cmdMode = true;       // Are we in AT command mode or connected mode
 bool callConnected = false;// Are we currently in a call
