@@ -389,24 +389,6 @@ void command()
     sendResult(R_OK);
   }
 
-  /**** Set PET MCTerm Translate On ****/
-  else if (upCmd == "ATPET=1") {
-    petTranslate = true;
-    sendResult(R_OK);
-  }
-
-  /**** Set PET MCTerm Translate Off ****/
-  else if (upCmd == "ATPET=0") {
-    petTranslate = false;
-    sendResult(R_OK);
-  }
-
-  /**** Display PET MCTerm Translate Setting ****/
-  else if (upCmd == "ATPET?") {
-    sendString(String(petTranslate));
-    sendResult(R_OK);
-  }
-
   /**** Set HEX Translate On ****/
   else if (upCmd == "ATHEX=1") {
     hex = true;

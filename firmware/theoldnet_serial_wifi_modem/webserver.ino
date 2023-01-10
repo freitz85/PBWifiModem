@@ -43,11 +43,11 @@ void handleRoot() {
     page.concat("SCAN COMPLETED");
   }
   yield();
-  page.concat("\nSSID.......: " + WiFi.SSID());
+  page.concat("<br>SSID.......: " + WiFi.SSID());
 
   byte mac[6];
   WiFi.macAddress(mac);
-  page.concat("\nMAC ADDRESS: ");
+  page.concat("<br>MAC ADDRESS: ");
   page.concat(String(mac[0], HEX));
   page.concat(":");
   page.concat(String(mac[1], HEX));
@@ -61,14 +61,14 @@ void handleRoot() {
   page.concat(String(mac[5], HEX));
   yield();
 
-  page.concat("\nIP ADDRESS.: "); page.concat(ipToString(WiFi.localIP()));
-  page.concat("\nGATEWAY....: "); page.concat(ipToString(WiFi.gatewayIP()));
+  page.concat("<br>IP ADDRESS.: "); page.concat(ipToString(WiFi.localIP()));
+  page.concat("<br>GATEWAY....: "); page.concat(ipToString(WiFi.gatewayIP()));
   yield();
 
-  page.concat("\nSUBNET MASK: "); page.concat(ipToString(WiFi.subnetMask()));
+  page.concat("<br>SUBNET MASK: "); page.concat(ipToString(WiFi.subnetMask()));
   yield();
-  page.concat("\nSERVER PORT: "); page.concat(tcpServerPort);
-  page.concat("\nCALL STATUS: ");
+  page.concat("<br>SERVER PORT: "); page.concat(tcpServerPort);
+  page.concat("<br>CALL STATUS: ");
   if (callConnected) {
     page.concat("CONNECTED TO ");
     if (ppp) {
@@ -76,11 +76,12 @@ void handleRoot() {
     } else {
       page.concat(ipToString(tcpClient.remoteIP()));
     }
-    page.concat("\nCALL LENGTH: "); page.concat(connectTimeString()); yield();
+    page.concat("<br>CALL LENGTH: "); page.concat(connectTimeString()); yield();
   } else {
     page.concat("NOT CONNECTED");
   }
-  page.concat("\n");
-  webServer.send(200, "text/plain", page);
+  page.concat("<br>");
+  page.concat("<input type=\"file\">");
+  webServer.send(200, "text/html", page);
   delay(100);
 }

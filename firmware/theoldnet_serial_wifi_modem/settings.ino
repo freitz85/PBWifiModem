@@ -36,7 +36,6 @@ void displayHelp() {
   Serial.println("PPP SESSION..........: ATDTPPP"); yield();
   Serial.println("SET SPEED DIAL.......: AT&ZN=HOST:PORT (N=0-9)"); yield();
   Serial.println("HANDLE TELNET........: ATNETN (N=0,1)"); yield();
-  Serial.println("PET MCTERM TR........: ATPETN (N=0,1)"); yield();
   Serial.println("NETWORK INFO.........: ATI"); yield();
   Serial.println("HTTP GET.............: ATGET<URL>"); yield();
   Serial.println("GOPHER REQUEST.......: ATGPH<URL>"); yield();
@@ -78,7 +77,6 @@ void displayCurrentSettings() {
   Serial.print("&K"); Serial.print(flowControl); Serial.print(" "); yield();
   Serial.print("&P"); Serial.print(pinPolarity); Serial.print(" "); yield();
   Serial.print("NET"); Serial.print(telnet); Serial.print(" "); yield();
-  Serial.print("PET"); Serial.print(petTranslate); Serial.print(" "); yield();
   Serial.print("S0:"); Serial.print(autoAnswer); Serial.print(" "); yield();
   Serial.println(); yield();
 
@@ -103,7 +101,6 @@ void displayStoredSettings() {
   Serial.print("&K"); Serial.print(EEPROM.read(FLOW_CONTROL_ADDRESS)); Serial.print(" "); yield();
   Serial.print("&P"); Serial.print(EEPROM.read(PIN_POLARITY_ADDRESS)); Serial.print(" "); yield();
   Serial.print("NET"); Serial.print(EEPROM.read(TELNET_ADDRESS)); Serial.print(" "); yield();
-  Serial.print("PET"); Serial.print(EEPROM.read(PET_TRANSLATE_ADDRESS)); Serial.print(" "); yield();
   Serial.print("S0:"); Serial.print(EEPROM.read(AUTO_ANSWER_ADDRESS)); Serial.print(" "); yield();
   Serial.println(); yield();
 
@@ -127,7 +124,6 @@ void writeSettings() {
   EEPROM.write(SERVER_PORT_ADDRESS + 1, lowByte(tcpServerPort));
   EEPROM.write(TELNET_ADDRESS, byte(telnet));
   EEPROM.write(VERBOSE_ADDRESS, byte(verboseResults));
-  EEPROM.write(PET_TRANSLATE_ADDRESS, byte(petTranslate));
   EEPROM.write(FLOW_CONTROL_ADDRESS, byte(flowControl));
   EEPROM.write(PIN_POLARITY_ADDRESS, byte(pinPolarity));
   EEPROM.write(QUIET_MODE_ADDRESS, byte(quietMode));
@@ -149,7 +145,6 @@ void readSettings() {
   tcpServerPort = word(EEPROM.read(SERVER_PORT_ADDRESS), EEPROM.read(SERVER_PORT_ADDRESS + 1));
   telnet = EEPROM.read(TELNET_ADDRESS);
   verboseResults = EEPROM.read(VERBOSE_ADDRESS);
-  petTranslate = EEPROM.read(PET_TRANSLATE_ADDRESS);
   flowControl = EEPROM.read(FLOW_CONTROL_ADDRESS);
   pinPolarity = EEPROM.read(PIN_POLARITY_ADDRESS);
   quietMode = EEPROM.read(QUIET_MODE_ADDRESS);
@@ -174,7 +169,6 @@ void defaultEEPROM() {
   EEPROM.write(AUTO_ANSWER_ADDRESS, 0x01);
   EEPROM.write(TELNET_ADDRESS, 0x00);
   EEPROM.write(VERBOSE_ADDRESS, 0x01);
-  EEPROM.write(PET_TRANSLATE_ADDRESS, 0x00);
   EEPROM.write(FLOW_CONTROL_ADDRESS, 0x02);
   EEPROM.write(PIN_POLARITY_ADDRESS, 0x01);
   EEPROM.write(QUIET_MODE_ADDRESS, 0x00);

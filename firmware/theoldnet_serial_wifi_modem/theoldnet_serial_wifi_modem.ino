@@ -2,21 +2,7 @@
    TheOldNet.com RS232 Serial WIFI Modem
    Copyright (C) 2020 Richard Bettridge (@theoldnet)
 
-   
-   
-   based on 
-   WiFi SIXFOUR - A virtual WiFi modem based on the ESP 8266 chipset
-   Copyright (C) 2016 Paul Rickards <rickards@gmail.com>
-   Added EEPROM read/write, status/help pages, busy answering of incoming calls
-   uses the readily available Sparkfun ESP8266 WiFi Shield which has 5v level
-   shifters and 3.3v voltage regulation present-- easily connect to a C64
-   https://www.sparkfun.com/products/13287
-
-   based on
-   ESP8266 based virtual modem
-   Copyright (C) 2016 Jussi Salin <salinjus@gmail.com>
-
-   https://github.com/jsalin/esp8266_modem
+   based on https://github.com/jsalin/esp8266_modem
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -63,7 +49,6 @@
 #define AUTO_ANSWER_ADDRESS 115 // 1 byte
 #define TELNET_ADDRESS  116     // 1 byte
 #define VERBOSE_ADDRESS 117
-#define PET_TRANSLATE_ADDRESS 118
 #define FLOW_CONTROL_ADDRESS 119
 #define PIN_POLARITY_ADDRESS 120
 #define QUIET_MODE_ADDRESS 121
@@ -123,14 +108,10 @@ int tcpServerPort = LISTEN_PORT;
 unsigned long lastRingMs = 0; // Time of last "RING" message (millis())
 //long myBps;                // What is the current BPS setting
 #define MAX_CMD_LENGTH 256 // Maximum length for AT command
-char plusCount = 0;        // Go to AT mode at "+++" sequence, that has to be counted
-unsigned long plusTime = 0;// When did we last receive a "+++" sequence
+
 #define LED_TIME 15         // How many ms to keep LED on at activity
 unsigned long ledTime = 0;
-#define TX_BUF_SIZE 256    // Buffer where to read from serial before writing to TCP
-// (that direction is very blocking by the ESP TCP stack,
-// so we can't do one byte a time.)
-uint8_t txBuf[TX_BUF_SIZE];
+
 const int speedDialAddresses[] = { DIAL0_ADDRESS, DIAL1_ADDRESS, DIAL2_ADDRESS, DIAL3_ADDRESS, DIAL4_ADDRESS, DIAL5_ADDRESS, DIAL6_ADDRESS, DIAL7_ADDRESS, DIAL8_ADDRESS, DIAL9_ADDRESS };
 String speedDials[10];
 const int bauds[] = { 300, 1200, 2400, 4800, 9600, 19200, 38400, 57600, 115200 };
@@ -142,7 +123,6 @@ byte ringCount = 0;
 String resultCodes[] = { "OK", "CONNECT", "RING", "NO CARRIER", "ERROR", "", "NO DIALTONE", "BUSY", "NO ANSWER" };
 enum resultCodes_t { R_OK, R_CONNECT, R_RING, R_NOCARRIER, R_ERROR, R_NONE, R_NODIALTONE, R_BUSY, R_NOANSWER };
 unsigned long connectTime = 0;
-bool petTranslate = false; // Fix PET MCTerm 1.26C Pet->ASCII encoding to actual ASCII
 bool hex = false;
 enum flowControl_t { F_NONE, F_HARDWARE, F_SOFTWARE };
 byte flowControl = F_NONE;      // Use flow control
@@ -200,9 +180,6 @@ void waitForSpace() {
   while (c != 0x20) {
     if (Serial.available() > 0) {
       c = Serial.read();
-      if (petTranslate == true){
-        if (c > 127) c-= 128;
-      }
     }
   }
   Serial.print("\r");
@@ -259,9 +236,6 @@ void waitForFirstInput(){
       while (c != 0x0a && c != 0x0d) {
         if (Serial.available() > 0) {
           c = Serial.read();
-          if (petTranslate == true){
-            if (c > 127) c-= 128;
-          }
         }
         if (checkButton() == 1) {
           break; // button pressed, we're setting to 300 baud and moving on
@@ -379,12 +353,10 @@ void handleCommandMode(){
     {
       char chr = Serial.read();
 
-      if (petTranslate == true)
-        // Fix PET MCTerm 1.26C Pet->ASCII encoding to actual ASCII
-        if (chr > 127) chr-= 128;
-      else
-        // Convert uppercase PETSCII to lowercase ASCII (C64) in command mode only
-        if ((chr >= 193) && (chr <= 218)) chr-= 96;
+      // Convert uppercase PETSCII to lowercase ASCII (C64) in command mode only
+      if ((chr >= 193) && (chr <= 218)) {
+        chr-= 96;
+      }
 
       // Return, enter, new line, carriage return.. anything goes to end the command
       if ((chr == '\n') || (chr == '\r'))
@@ -410,142 +382,6 @@ void handleCommandMode(){
         }
       }
     }
-}
-
-void handleConnectedMode(){
-// Transmit from terminal to TCP
-    if (Serial.available())
-    {
-      led_on();
-
-      // In telnet in worst case we have to escape every byte
-      // so leave half of the buffer always free
-      int max_buf_size;
-      if (telnet == true)
-        max_buf_size = TX_BUF_SIZE / 2;
-      else
-        max_buf_size = TX_BUF_SIZE;
-
-      // Read from serial, the amount available up to
-      // maximum size of the buffer
-      size_t len = std::min(Serial.available(), max_buf_size);
-      Serial.readBytes(&txBuf[0], len);
-
-      // Enter command mode with "+++" sequence
-      for (int i = 0; i < (int)len; i++)
-      {
-        if (txBuf[i] == '+') plusCount++; else plusCount = 0;
-        if (plusCount >= 3)
-        {
-          plusTime = millis();
-        }
-        if (txBuf[i] != '+')
-        {
-          plusCount = 0;
-        }
-      }
-
-      // Double (escape) every 0xff for telnet, shifting the following bytes
-      // towards the end of the buffer from that point
-      if (telnet == true)
-      {
-        for (int i = len - 1; i >= 0; i--)
-        {
-          if (txBuf[i] == 0xff)
-          {
-            for (int j = TX_BUF_SIZE - 1; j > i; j--)
-            {
-              txBuf[j] = txBuf[j - 1];
-            }
-            len++;
-          }
-        }
-      }
-      // Fix PET MCTerm 1.26C Pet->ASCII encoding to actual ASCII
-      if (petTranslate == true) {
-        for (int i = len - 1; i >= 0; i--) {
-          if (txBuf[i] > 127) txBuf[i]-= 128;
-        }
-      }
-      // Write the buffer to PPP or TCP finally
-      if (ppp)
-      {
-        pppos_input(ppp, &txBuf[0], len);
-      }
-      else
-      {
-        tcpClient.write(&txBuf[0], len);
-      }
-      yield();
-    }
-
-    // Transmit from TCP to terminal
-    while (tcpClient.available() && txPaused == false)
-    {
-      led_on();
-      uint8_t rxByte = tcpClient.read();
-
-      // Is a telnet control code starting?
-      if ((telnet == true) && (rxByte == 0xff))
-      {
-#ifdef DEBUG
-        Serial.print("<t>");
-#endif
-        rxByte = tcpClient.read();
-        if (rxByte == 0xff)
-        {
-          // 2 times 0xff is just an escaped real 0xff
-          Serial.write(0xff); Serial.flush();
-        }
-        else
-        {
-          // rxByte has now the first byte of the actual non-escaped control code
-#ifdef DEBUG
-          Serial.print(rxByte);
-          Serial.print(",");
-#endif
-          uint8_t cmdByte1 = rxByte;
-          rxByte = tcpClient.read();
-          uint8_t cmdByte2 = rxByte;
-          // rxByte has now the second byte of the actual non-escaped control code
-#ifdef DEBUG
-          Serial.print(rxByte); Serial.flush();
-#endif
-          // We are asked to do some option, respond we won't
-          if (cmdByte1 == DO)
-          {
-            tcpClient.write((uint8_t)255); tcpClient.write((uint8_t)WONT); tcpClient.write(cmdByte2);
-          }
-          // Server wants to do any option, allow it
-          else if (cmdByte1 == WILL)
-          {
-            tcpClient.write((uint8_t)255); tcpClient.write((uint8_t)DO); tcpClient.write(cmdByte2);
-          }
-        }
-#ifdef DEBUG
-        Serial.print("</t>");
-#endif
-      }
-      else
-      {
-        // Non-control codes pass through freely
-        Serial.write(rxByte); yield(); Serial.flush(); yield();
-      }
-      handleFlowControl();
-    }
-
-  // If we have received "+++" as last bytes from serial port and there
-  // has been over a second without any more bytes
-  if (plusCount >= 3)
-  {
-    if (millis() - plusTime > 1000)
-    {
-      //tcpClient.stop();
-      cmdMode = true;
-      sendResult(R_OK);
-      plusCount = 0;
-    }
-  }      
 }
 
 void restoreCommandModeIfDisconnected(){
@@ -577,6 +413,7 @@ void loop()
 
   checkButton();
 
+  // No idea what this is
   // New unanswered incoming connection on server listen socket
   if (tcpServer.hasClient()) {
     handleIncomingConnection();
