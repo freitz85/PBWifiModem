@@ -40,7 +40,7 @@
 
 #include <IPAddress.h>
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+
 #include <EEPROM.h>
 #include <ESP8266mDNS.h>
 
@@ -159,7 +159,7 @@ bool quietMode = false;
 
 WiFiClient tcpClient;
 WiFiServer tcpServer(tcpServerPort);
-ESP8266WebServer webServer(80);
+
 MDNSResponder mdns;
 ppp_pcb *ppp;
 struct netif ppp_netif;
@@ -245,6 +245,8 @@ void setup() {
   welcome();
   
   wifiSetup();
+
+  webserverSetup();
   
 }
 
@@ -295,7 +297,7 @@ void hangUp() {
 void handleWebHangUp() {
   String t = "NO CARRIER (" + connectTimeString() + ")";
   hangUp();
-  webServer.send(200, "text/plain", t);
+  webserverHangup(t);
 }
 
 void answerCall() {
@@ -371,35 +373,8 @@ void handleFlowControl() {
   }
 }
 
-/**
-   Arduino main loop function
-*/
-void loop()
-{
-  if (firmwareUpdating == true){
-    ota_firmware_loop();
-    return;
-  }
-  
-  // Check flow control
-  handleFlowControl();
-    
-  // Service the Web server
-  webServer.handleClient();
-
-  // Check to see if user is requesting rate change to 300 baud
-  checkButton();
-
-  // New unanswered incoming connection on server listen socket
-  if (tcpServer.hasClient()) {
-    handleIncomingConnection();
-  }
-
-  /**** AT command mode ****/
-  if (cmdMode == true)
-  {
-
-    // In command mode - don't exchange with TCP but gather characters to a string
+void handleCommandMode(){
+// In command mode - don't exchange with TCP but gather characters to a string
     if (Serial.available())
     {
       char chr = Serial.read();
@@ -435,11 +410,10 @@ void loop()
         }
       }
     }
-  }
-  /**** Connected mode ****/
-  else
-  {
-    // Transmit from terminal to TCP
+}
+
+void handleConnectedMode(){
+// Transmit from terminal to TCP
     if (Serial.available())
     {
       led_on();
@@ -559,7 +533,6 @@ void loop()
       }
       handleFlowControl();
     }
-  }
 
   // If we have received "+++" as last bytes from serial port and there
   // has been over a second without any more bytes
@@ -572,9 +545,11 @@ void loop()
       sendResult(R_OK);
       plusCount = 0;
     }
-  }
+  }      
+}
 
-  // Go to command mode if both TCP and PPP are disconnected and not in command mode
+void restoreCommandModeIfDisconnected(){
+    // Go to command mode if both TCP and PPP are disconnected and not in command mode
   if ((!tcpClient.connected() && ppp == NULL) && (cmdMode == false) && callConnected == true)
   {
     cmdMode = true;
@@ -584,7 +559,39 @@ void loop()
     setCarrierDCDPin(callConnected);
     //if (tcpServerPort > 0) tcpServer.begin();
   }
+}
 
-  // Turn off tx/rx led if it has been lit long enough to be visible
-  if (millis() - ledTime > LED_TIME) digitalWrite(LED_PIN, !digitalRead(LED_PIN)); // toggle LED state
+/**
+   Arduino main loop function
+*/
+void loop()
+{
+  if (firmwareUpdating == true){
+    handleOTAFirmware();
+    return;
+  }
+  
+  handleFlowControl();
+    
+  handleWebServer();
+
+  checkButton();
+
+  // New unanswered incoming connection on server listen socket
+  if (tcpServer.hasClient()) {
+    handleIncomingConnection();
+  }
+
+  if (cmdMode == true)
+  {
+    handleCommandMode();
+  }
+  else
+  {
+    handleConnectedMode();
+  }
+
+  restoreCommandModeIfDisconnected();
+
+  handleLEDState();
 }

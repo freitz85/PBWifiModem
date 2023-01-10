@@ -13,7 +13,7 @@ String getLatestVersion(){
   HTTPClient http;
     
   // Your IP address with path or Domain name with URL path 
-//  Serial.println("http://theoldnet.com/ota/latest-version.txt");
+  //  Serial.println("http://theoldnet.com/ota/latest-version.txt");
   http.begin(client, "http://theoldnet.com/ota/latest-version.txt");
   
   // Send HTTP POST request
@@ -33,6 +33,7 @@ String getLatestVersion(){
   }
   // Free resources
   http.end();
+  
   return latestVersion;
 }
 
@@ -61,7 +62,7 @@ void update_error(int err) {
   firmwareUpdating == false;
 }
 
-void ota_firmware_loop(){
+void handleOTAFirmware(){
   // wait for WiFi connection
   if ((WiFiMulti.run() == WL_CONNECTED)) {
 
@@ -82,7 +83,7 @@ void ota_firmware_loop(){
     ESPhttpUpdate.onError(update_error);
 
     String latestVersion = getLatestVersion();
-//    Serial.println("http://theoldnet.com/ota/" + latestVersion + ".bin");
+    //Serial.println("http://theoldnet.com/ota/" + latestVersion + ".bin");
     t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/ota/" + latestVersion + ".bin");
     // Or:
     //t_httpUpdate_return ret = ESPhttpUpdate.update(client, "server", 80, "file.bin");

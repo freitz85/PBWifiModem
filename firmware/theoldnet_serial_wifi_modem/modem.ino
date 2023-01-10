@@ -15,6 +15,24 @@ String connectTimeString() {
   return out;
 }
 
+void handleQuietMode(String upCmd){
+    if (upCmd.substring(3, 4) == "?") {
+      sendString(String(quietMode));
+      sendResult(R_OK);
+    }
+    else if (upCmd.substring(3, 4) == "0") {
+      quietMode = 0;
+      sendResult(R_OK);
+    }
+    else if (upCmd.substring(3, 4) == "1") {
+      quietMode = 1;
+      sendResult(R_OK);
+    }
+    else {
+      sendResult(R_ERROR);
+    }
+}
+
 void dialOut(String upCmd) {
   // Can't place a call while in a call
   if (callConnected) {
@@ -447,123 +465,18 @@ void command()
   /**** HTTP GET request ****/
   else if (upCmd.indexOf("ATGET") == 0)
   {
-    // From the URL, aquire required variables
-    // (12 = "ATGEThttp://")
-    int portIndex = cmd.indexOf(":", 12); // Index where port number might begin
-    int pathIndex = cmd.indexOf("/", 12); // Index first host name and possible port ends and path begins
-    int port;
-    String path, host;
-    if (pathIndex < 0)
-    {
-      pathIndex = cmd.length();
-    }
-    if (portIndex < 0)
-    {
-      port = 80;
-      portIndex = pathIndex;
-    }
-    else
-    {
-      port = cmd.substring(portIndex + 1, pathIndex).toInt();
-    }
-    host = cmd.substring(12, portIndex);
-    path = cmd.substring(pathIndex, cmd.length());
-    if (path == "") path = "/";
-    char *hostChr = new char[host.length() + 1];
-    host.toCharArray(hostChr, host.length() + 1);
-
-    // Establish connection
-    if (!tcpClient.connect(hostChr, port))
-    {
-      sendResult(R_NOCARRIER);
-      connectTime = 0;
-      callConnected = false;
-      setCarrierDCDPin(callConnected);
-    }
-    else
-    {
-      sendResult(R_CONNECT);
-      connectTime = millis();
-      cmdMode = false;
-      callConnected = true;
-      setCarrierDCDPin(callConnected);
-
-      // Send a HTTP request before continuing the connection as usual
-      String request = "GET ";
-      request += path;
-      request += " HTTP/1.1\r\nHost: ";
-      request += host;
-      request += "\r\nConnection: close\r\n\r\n";
-      tcpClient.print(request);
-    }
-    delete hostChr;
+    handleHTTPRequest();
   }
 
   /**** Gopher request ****/
   else if (upCmd.indexOf("ATGPH") == 0)
   {
-    // From the URL, aquire required variables
-    // (14 = "ATGPHgopher://")
-    int portIndex = cmd.indexOf(":", 14); // Index where port number might begin
-    int pathIndex = cmd.indexOf("/", 14); // Index first host name and possible port ends and path begins
-    int port;
-    String path, host;
-    if (pathIndex < 0)
-    {
-      pathIndex = cmd.length();
-    }
-    if (portIndex < 0)
-    {
-      port = 70;
-      portIndex = pathIndex;
-    }
-    else
-    {
-      port = cmd.substring(portIndex + 1, pathIndex).toInt();
-    }
-    host = cmd.substring(14, portIndex);
-    path = cmd.substring(pathIndex, cmd.length());
-    if (path == "") path = "/";
-    char *hostChr = new char[host.length() + 1];
-    host.toCharArray(hostChr, host.length() + 1);
-
-    // Establish connection
-    if (!tcpClient.connect(hostChr, port))
-    {
-      sendResult(R_NOCARRIER);
-      connectTime = 0;
-      callConnected = false;
-      setCarrierDCDPin(callConnected);
-    }
-    else
-    {
-      sendResult(R_CONNECT);
-      connectTime = millis();
-      cmdMode = false;
-      callConnected = true;
-      setCarrierDCDPin(callConnected);
-      tcpClient.print(path + "\r\n");
-    }
-    delete hostChr;
+    handleGopherRequest();
   }
 
   /**** Control quiet mode ****/
   else if (upCmd.indexOf("ATQ") == 0) {
-    if (upCmd.substring(3, 4) == "?") {
-      sendString(String(quietMode));
-      sendResult(R_OK);
-    }
-    else if (upCmd.substring(3, 4) == "0") {
-      quietMode = 0;
-      sendResult(R_OK);
-    }
-    else if (upCmd.substring(3, 4) == "1") {
-      quietMode = 1;
-      sendResult(R_OK);
-    }
-    else {
-      sendResult(R_ERROR);
-    }
+    handleQuietMode(upCmd);
   }
 
   /**** Unknown command ****/
