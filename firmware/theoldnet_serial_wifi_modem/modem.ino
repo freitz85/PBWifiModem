@@ -1,3 +1,20 @@
+String connectTimeString() {
+  unsigned long now = millis();
+  int secs = (now - connectTime) / 1000;
+  int mins = secs / 60;
+  int hours = mins / 60;
+  String out = "";
+  if (hours < 10) out.concat("0");
+  out.concat(String(hours));
+  out.concat(":");
+  if (mins % 60 < 10) out.concat("0");
+  out.concat(String(mins % 60));
+  out.concat(":");
+  if (secs % 60 < 10) out.concat("0");
+  out.concat(String(secs % 60));
+  return out;
+}
+
 void dialOut(String upCmd) {
   // Can't place a call while in a call
   if (callConnected) {
@@ -58,7 +75,7 @@ void dialOut(String upCmd) {
       connectTime = millis();
       cmdMode = false;
       callConnected = true;
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
     } else {
       Serial.println("ppp_listen failed\n");
       ppp_status_cb(ppp, ppp_err, NULL);
@@ -81,14 +98,14 @@ void dialOut(String upCmd) {
     cmdMode = false;
     Serial.flush();
     callConnected = true;
-    setCarrier(callConnected);
+    setCarrierDCDPin(callConnected);
     //if (tcpServerPort > 0) tcpServer.stop();
   }
   else
   {
     sendResult(R_NOANSWER);
     callConnected = false;
-    setCarrier(callConnected);
+    setCarrierDCDPin(callConnected);
   }
   delete hostChr;
 }
@@ -206,12 +223,12 @@ void command()
     else if (upCmd.substring(4, 5) == "0") {
       pinPolarity = P_INVERTED;
       sendResult(R_OK);
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
     }
     else if (upCmd.substring(4, 5) == "1") {
       pinPolarity = P_NORMAL;
       sendResult(R_OK);
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
     }
     else {
       sendResult(R_ERROR);
@@ -461,7 +478,7 @@ void command()
       sendResult(R_NOCARRIER);
       connectTime = 0;
       callConnected = false;
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
     }
     else
     {
@@ -469,7 +486,7 @@ void command()
       connectTime = millis();
       cmdMode = false;
       callConnected = true;
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
 
       // Send a HTTP request before continuing the connection as usual
       String request = "GET ";
@@ -516,7 +533,7 @@ void command()
       sendResult(R_NOCARRIER);
       connectTime = 0;
       callConnected = false;
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
     }
     else
     {
@@ -524,7 +541,7 @@ void command()
       connectTime = millis();
       cmdMode = false;
       callConnected = true;
-      setCarrier(callConnected);
+      setCarrierDCDPin(callConnected);
       tcpClient.print(path + "\r\n");
     }
     delete hostChr;

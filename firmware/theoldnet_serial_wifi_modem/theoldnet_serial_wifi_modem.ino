@@ -81,7 +81,7 @@
 #define BUSY_MSG_LEN    80
 #define LAST_ADDRESS    780
 
-#define SWITCH_PIN 0       // GPIO0 (programmind mode pin)
+#define FLASH_BUTTON 0       // GPIO0 (programmind mode pin)
 #define LED_PIN 16          // Status LED
 #define LED_ESP_PIN 2
 #define DCD_PIN 2          // DCD Carrier Status
@@ -164,23 +164,6 @@ MDNSResponder mdns;
 ppp_pcb *ppp;
 struct netif ppp_netif;
 
-String connectTimeString() {
-  unsigned long now = millis();
-  int secs = (now - connectTime) / 1000;
-  int mins = secs / 60;
-  int hours = mins / 60;
-  String out = "";
-  if (hours < 10) out.concat("0");
-  out.concat(String(hours));
-  out.concat(":");
-  if (mins % 60 < 10) out.concat("0");
-  out.concat(String(mins % 60));
-  out.concat(":");
-  if (secs % 60 < 10) out.concat("0");
-  out.concat(String(secs % 60));
-  return out;
-}
-
 void sendResult(int resultCode) {
   Serial.print("\r\n");
   if (quietMode == 1) {
@@ -206,40 +189,7 @@ void sendString(String msg) {
   Serial.print("\r\n");
 }
 
-// Hold for 5 seconds to switch to 300 baud
-// Slow flash: keep holding
-// Fast flash: let go
-int checkButton() {
-  long time = millis();
-  while (digitalRead(SWITCH_PIN) == LOW && millis() - time < 5000) {
-    long remaining = millis() - time;
-    //Serial.print("\r\n Reset To 300 BPS In " + String(remaining) + "");
-    delay(250);
-    digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    digitalWrite(LED_ESP_PIN, !digitalRead(LED_ESP_PIN));
-    yield();
-  }
-  if (millis() - time > 5000) {
-    Serial.print("\r\nResetting to 300 BPS Now");
-    Serial.flush();
-    Serial.end();
-    serialspeed = 0;
-    delay(100);
-    Serial.begin(bauds[serialspeed]);
-    sendResult(R_OK);
-    while (digitalRead(SWITCH_PIN) == LOW) {
-      delay(50);
-      digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-      digitalWrite(LED_ESP_PIN, !digitalRead(LED_ESP_PIN));
-      yield();
-    }
-    return 1;
-  } else {
-    return 0;
-  }
-}
-
-void setCarrier(byte carrier) {
+void setCarrierDCDPin(byte carrier) {
   if (pinPolarity == P_NORMAL) carrier = !carrier;
   digitalWrite(DCD_PIN, carrier);
 }
@@ -258,12 +208,6 @@ void waitForSpace() {
   Serial.print("\r");
 }
 
-void storeSpeedDial(byte num, String location) {
-  //if (num < 0 || num > 9) { return; }
-  speedDials[num] = location;
-  //Serial.print("STORED "); Serial.print(num); Serial.print(": "); Serial.println(location);
-}
-
 void welcome() {
   Serial.println();
   Serial.println("TheOldNet.com");
@@ -279,59 +223,32 @@ void welcome() {
 void setup() {
   pinMode(LED_PIN, OUTPUT);
   digitalWrite(LED_PIN, HIGH); // off
-  pinMode(SWITCH_PIN, INPUT);
-  digitalWrite(SWITCH_PIN, HIGH);
-//  pinMode(DCD_PIN, OUTPUT);
-
-  //Research
-  //7 RTS is High from the computer at 9v on other modem
-  //8 CTS is high from modem as either output high or input high, not sure
   
-  //Consider disabling/ignoring this. PC is going to saw RTS high, but do we care since flow control isn't actually implimented in code yet
-//  pinMode(RTS_PIN, INPUT); //this was set to output but the diagrams I look at seem to say a modem's rts pin is input
-//  digitalWrite(RTS_PIN, LOW); // ready to receive data // disabled this because it's input, maybe this is wrong
-  pinMode(CTS_PIN, OUTPUT); //this was set to input but the diagrams I look at seem to say a modem's cts pin is output
-  digitalWrite(CTS_PIN, HIGH); // pull up//old comment
-  setCarrier(false);
+  pinMode(FLASH_BUTTON, INPUT);
+  digitalWrite(FLASH_BUTTON, HIGH);
 
   // the esp fork of LWIP doesn't automatically init when enabling nat, so just do it in setup
   ip_napt_init(IP_NAPT_MAX, IP_PORTMAP_MAX);
 
+  //why? was this part of the eeprom upgrade code or not, it preceeded the comments for it
   EEPROM.begin(LAST_ADDRESS + 1);
   delay(10);
-
-  /*
-    If EEPROM version is 01 upgrade to version 02 which adds the quiet mode flag.
-    If verbose mode was previously 2 (silent) set quiet mode to on.
-    Otherwise set it to off.
-  */
-  if (EEPROM.read(VERSION_ADDRESS) == 0 && EEPROM.read(VERSION_ADDRESS + 1) == 1) {
-    EEPROM.write(QUIET_MODE_ADDRESS, 0x00);
-    if (EEPROM.read(VERBOSE_ADDRESS) == 2) {
-      EEPROM.write(VERBOSE_ADDRESS, 0x00);
-      EEPROM.write(QUIET_MODE_ADDRESS, 0x01);
-    }
-    else {
-      EEPROM.write(QUIET_MODE_ADDRESS, 0x00);
-    }
-    EEPROM.write(VERSION_ADDRESS, VERSIONA);
-    EEPROM.write(VERSION_ADDRESS + 1, VERSIONB);
-  }
-
-  if (EEPROM.read(VERSION_ADDRESS) != VERSIONA || EEPROM.read(VERSION_ADDRESS + 1) != VERSIONB) {
-    defaultEEPROM();
-  }
-
+  
+  eepromUpgradeToDeprecate();
+  
   readSettings();
-  // Fetch baud rate from EEPROM
-  serialspeed = EEPROM.read(BAUD_ADDRESS);
-  // Check if it's out of bounds-- we have to be able to talk
-  if (serialspeed < 0 || serialspeed > sizeof(bauds)/sizeof(bauds[0])) {
-    serialspeed = 0;
-  }
 
-  Serial.begin(bauds[serialspeed]);
+  serialSetup();
 
+  //waitForFirstInput();
+  
+  welcome();
+  
+  wifiSetup();
+  
+}
+
+void waitForFirstInput(){
   char c;
   unsigned long startMillis = millis();
   while (c != 8 && c != 127 && c!= 20) { // Check for the backspace key to begin
@@ -355,14 +272,6 @@ void setup() {
       }
     }
   }
-
-  waitForFirstInput();
-  welcome();
-  wifiSetup();
-}
-
-void waitForFirstInput(){
-
 }
 
 String ipToString(IPAddress ip) {
@@ -378,7 +287,7 @@ void hangUp() {
     tcpClient.stop();
   }
   callConnected = false;
-  setCarrier(callConnected);
+  setCarrierDCDPin(callConnected);
   sendResult(R_NOCARRIER);
   connectTime = 0;
 }
@@ -397,7 +306,7 @@ void answerCall() {
   connectTime = millis();
   cmdMode = false;
   callConnected = true;
-  setCarrier(callConnected);
+  setCarrierDCDPin(callConnected);
   Serial.flush();
 }
 
@@ -438,7 +347,7 @@ void handleIncomingConnection() {
     cmdMode = false;
     tcpClient.flush();
     callConnected = true;
-    setCarrier(callConnected);
+    setCarrierDCDPin(callConnected);
   }
 }
 
@@ -672,7 +581,7 @@ void loop()
     sendResult(R_NOCARRIER);
     connectTime = 0;
     callConnected = false;
-    setCarrier(callConnected);
+    setCarrierDCDPin(callConnected);
     //if (tcpServerPort > 0) tcpServer.begin();
   }
 
