@@ -517,6 +517,7 @@ void connectWiFi() {
     Serial.print("CONNECTED TO "); Serial.println(WiFi.SSID());
     Serial.print("IP ADDRESS: "); Serial.println(WiFi.localIP());
     updateLed();
+    check_for_firmware_update();
   }
 }
 
@@ -866,7 +867,6 @@ void setup() {
   webServer.on("/ath", handleWebHangUp);
   webServer.begin();
   mdns.begin("C64WiFi", WiFi.localIP());
-  check_for_firmware_update();
 }
 
 String ipToString(IPAddress ip) {

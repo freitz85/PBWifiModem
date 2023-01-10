@@ -8,25 +8,23 @@
 
 ESP8266WiFiMulti WiFiMulti;
 
-void check_for_firmware_update(){
+String getLatestVersion(){
   WiFiClient client;
   HTTPClient http;
     
   // Your IP address with path or Domain name with URL path 
+//  Serial.println("http://theoldnet.com/ota/latest-version.txt");
   http.begin(client, "http://theoldnet.com/ota/latest-version.txt");
   
   // Send HTTP POST request
   int httpResponseCode = http.GET();
   
-  String payload = "{}"; 
+  String latestVersion = "unset"; 
   
   if (httpResponseCode>0) {
-    String payload = http.getString();
+    latestVersion = http.getString();
     build.trim();
-    payload.trim();
-    if (build != payload){
-      Serial.print("NEW FIRMWARE AVAILABLE! UPDATE BY TYPING AT$FW");
-    }
+    latestVersion.trim();
   }
   else {
     Serial.println("Issue checking for firmware update");
@@ -35,23 +33,32 @@ void check_for_firmware_update(){
   }
   // Free resources
   http.end();
+  return latestVersion;
+}
+
+void check_for_firmware_update(){
+  if (build != getLatestVersion()){
+      Serial.println("");
+      Serial.println("[ FIRMWARE AVAILABLE! ] UPDATE BY TYPING AT$FW");
+  }
 }
 
 void update_started() {
-  Serial.println("CALLBACK:  HTTP update process started");
+  Serial.println("FIRMWARE update process started");
 }
 
 void update_finished() {
   firmwareUpdating = false;
-  Serial.println("CALLBACK:  HTTP update process finished");
+  Serial.println("FIRMWARE update process finished");
 }
 
 void update_progress(int cur, int total) {
-  Serial.printf("CALLBACK:  HTTP update process at %d of %d bytes...\n", cur, total);
+  Serial.printf("DOWNLOADING FIRMWARE: %d of %d bytes...\n", cur, total);
 }
 
 void update_error(int err) {
-  Serial.printf("CALLBACK:  HTTP update fatal error code %d\n", err);
+  Serial.printf("FIRMWARE update fatal error code %d\n", err);
+  firmwareUpdating == false;
 }
 
 void ota_firmware_loop(){
@@ -74,13 +81,16 @@ void ota_firmware_loop(){
     ESPhttpUpdate.onProgress(update_progress);
     ESPhttpUpdate.onError(update_error);
 
-    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/ota/latest-version.bin");
+    String latestVersion = getLatestVersion();
+//    Serial.println("http://theoldnet.com/ota/" + latestVersion + ".bin");
+    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/ota/" + latestVersion + ".bin");
     // Or:
     //t_httpUpdate_return ret = ESPhttpUpdate.update(client, "server", 80, "file.bin");
 
     switch (ret) {
       case HTTP_UPDATE_FAILED:
-        Serial.printf("HTTP_UPDATE_FAILD Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+        Serial.printf("HTTP_UPDATE_FAILED Error (%d): %s\n", ESPhttpUpdate.getLastError(), ESPhttpUpdate.getLastErrorString().c_str());
+        firmwareUpdating == false;
         break;
 
       case HTTP_UPDATE_NO_UPDATES:
