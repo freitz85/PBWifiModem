@@ -8,6 +8,35 @@
 
 ESP8266WiFiMulti WiFiMulti;
 
+void check_for_firmware_update(){
+  WiFiClient client;
+  HTTPClient http;
+    
+  // Your IP address with path or Domain name with URL path 
+  http.begin(client, "http://theoldnet.com/ota/latest-version.txt");
+  
+  // Send HTTP POST request
+  int httpResponseCode = http.GET();
+  
+  String payload = "{}"; 
+  
+  if (httpResponseCode>0) {
+    String payload = http.getString();
+    build.trim();
+    payload.trim();
+    if (build != payload){
+      Serial.print("NEW FIRMWARE AVAILABLE! UPDATE BY TYPING AT$FW");
+    }
+  }
+  else {
+    Serial.println("Issue checking for firmware update");
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+  // Free resources
+  http.end();
+}
+
 void update_started() {
   Serial.println("CALLBACK:  HTTP update process started");
 }
@@ -45,7 +74,7 @@ void ota_firmware_loop(){
     ESPhttpUpdate.onProgress(update_progress);
     ESPhttpUpdate.onError(update_error);
 
-    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/ota/update.bin");
+    t_httpUpdate_return ret = ESPhttpUpdate.update(client, "http://theoldnet.com/ota/latest-version.bin");
     // Or:
     //t_httpUpdate_return ret = ESPhttpUpdate.update(client, "server", 80, "file.bin");
 

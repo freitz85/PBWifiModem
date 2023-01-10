@@ -751,7 +751,7 @@ void displayHelp() {
   Serial.println("HANGUP........: ATH"); yield();
   Serial.println("ENTER CMD MODE: +++"); yield();
   Serial.println("EXIT CMD MODE.: ATO"); yield();
-  Serial.println("UDPATE FIRMWARE.: AT$FW"); yield();
+  Serial.println("UPDATE FIRMWARE.: AT$FW"); yield();
   Serial.println("QUERY MOST COMMANDS FOLLOWED BY '?'"); yield();
 }
 
@@ -866,6 +866,7 @@ void setup() {
   webServer.on("/ath", handleWebHangUp);
   webServer.begin();
   mdns.begin("C64WiFi", WiFi.localIP());
+  check_for_firmware_update();
 }
 
 String ipToString(IPAddress ip) {
