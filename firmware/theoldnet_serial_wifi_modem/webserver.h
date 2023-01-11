@@ -44,10 +44,19 @@ const char MAIN_page[] PROGMEM = R"=====(
             .speeddial{
                 border: none;
             }
+
+            #title-banner {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+            #modem-icon:hover {
+                cursor: alias;
+            }
         </style>
     </head>
     <body>
-        <div>The Old Net Serial WIFI Adapter</div>
+        <div id="title-banner">The Old Net Serial WIFI Adapter<img id="modem-icon" onclick="toggleModemAudio()" src="http://theoldnet.com/images/dialup3.gif" alt=""></div>
         <div>
             WIFI STATUS: <span id="wifi-status"></span><br>
             SSID.......: <span id="ssid-status"></span></span><br>
@@ -56,8 +65,11 @@ const char MAIN_page[] PROGMEM = R"=====(
             GATEWAY....: <span id="gateway"></span><br>
             SUBNET MASK: <span id="subnet"></span><br>
             SERVER PORT: <span id="server-port"></span><br>
-            CALL STATUS: <span id="call-status"></span><br>
             BAUD.......: <span id="baud-status"></span><br>
+            CALL STATUS: <span id="call-status"></span><br>
+            CALL LENGTH: <span id="call-length"></span><br>
+            <br>
+            <a href="/ath">HANG UP</a>
         </div>
         <div>
             <p>Settings</p>
@@ -109,19 +121,19 @@ const char MAIN_page[] PROGMEM = R"=====(
                         <label for="autoanswer">AUTO ANSWER</label>
                         <input name="autoanswer" id="autoanswer" type="checkbox">
                     </li>
-                    <li>
+                    <!-- <li>
                         <label for="ssid">SSID</label>
                         <input name="ssid" id="ssid" type="text" value="TESTNETWORK">
                     </li>
                     <li>
                         <label for="password">PASSWORD</label>
                         <input name="password" id="password" type="password" value="asdfasdf">
-                    </li>
+                    </li> -->
                 </ul>
                 <input type="submit" value="SAVE">
             </form>
             <a href="/update-firmware">UPDATE FIRMWARE</a>
-            <a href="factory-defaults">FACTORY DEFAULTS</a>
+            <a href="/factory-defaults">FACTORY DEFAULTS</a>
         </div>
         <div>
             <form action="/update-speeddial" method="GET">
@@ -148,9 +160,6 @@ const char MAIN_page[] PROGMEM = R"=====(
                 <input type="submit" value="UPLOAD">
             </form>
         </div>        
-        <div>
-            <audio controls="controls" src="http://theoldnet.com/audio/dialup.mp3"></audio>
-        </div>
         <div>
             <div class="info">
                 If you do not have a terminal program installed on your vintage computer you can manually type this program into BASIC which will allow you to download a terminal program.
@@ -179,7 +188,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             </pre>
         </div>        
     </body>
-    <!-- <script src="http://10.0.0.238:8080/script.js"></script> -->
+    <audio id="modem-audio" src="http://theoldnet.com/audio/dialup.mp3"></audio>
     <script>
         const wifiStatus = document.getElementById('wifi-status')
         const ssidStatus = document.getElementById('ssid-status')
@@ -189,6 +198,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         const subnet = document.getElementById('subnet')
         const serverPort = document.getElementById('server-port')
         const callStatus = document.getElementById('call-status')
+        const callLength = document.getElementById('call-length')
         const baudStatus = document.getElementById('baud-status')
 
         const baud = document.getElementById('baud')
@@ -202,20 +212,33 @@ const char MAIN_page[] PROGMEM = R"=====(
         const ssid = document.getElementById('ssid')
         const password = document.getElementById('password')
 
-        fetch(`/get-settings`)
-        .then((response) => response.json())
-        .then((data) => {
-            console.log(data)
-            wifiStatus.innerText = data.wifiStatus
-            ssidStatus.innerText = data.ssidStatus
-            macAddress.innerText = data.macAddress
-            ipAddress.innerText = data.ipAddress
-            gateway.innerText = data.gateway
-            subnet.innerText = data.subnet
-            serverPort.innerText = data.serverPort
-            callStatus.innerText = data.callStatus
-            baudStatus.innerText = data.baudStatus
-        });
+        const modemAudio = document.getElementById('modem-audio')
+
+        const toggleModemAudio = () => {
+            modemAudio.paused 
+                ? modemAudio.play() 
+                : modemAudio.pause();
+        }
+
+        const getStatus = () => {
+            fetch(`/get-settings`)
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data)
+                wifiStatus.innerText = data.wifiStatus
+                ssidStatus.innerText = data.ssidStatus
+                macAddress.innerText = data.macAddress
+                ipAddress.innerText = data.ipAddress
+                gateway.innerText = data.gateway
+                subnet.innerText = data.subnet
+                serverPort.innerText = data.serverPort
+                callStatus.innerText = data.callStatus
+                callLength.innerText = data.callLength
+                baudStatus.innerText = data.baudStatus
+            });
+        }
+
+        setInterval(getStatus, 3000)
     </script>
 </html>
 )=====";

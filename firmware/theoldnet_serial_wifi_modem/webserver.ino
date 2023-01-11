@@ -40,6 +40,7 @@ void handleGetSettings(){
     json += "\"subnet\": \"" + ipToString(WiFi.subnetMask()) + "\",";
     json += "\"serverPort\": \"" + String(tcpServerPort) + "\",";
     json += "\"callStatus\": \"" + getCallStatus() + "\",";
+    json += "\"callLength\": \"" + getCallLength() + "\",";
     json += "\"baudStatus\": \"" + String(bauds[serialspeed]) + "\"";
   json += "}";
   webServer.send(200, "application/json", json);
@@ -97,13 +98,21 @@ String getCallStatus(){
     } else {
       status.concat(ipToString(tcpClient.remoteIP()));
     }
-    status.concat("CALL LENGTH: "); 
-    status.concat(connectTimeString()); 
-//    yield(); //why?
+  //    yield(); //why?
   } else {
     status.concat("NOT CONNECTED");
   }
   return status;
+}
+
+String getCallLength(){
+  String status = "";
+  if (callConnected) {
+    status.concat(connectTimeString()); 
+  } else {
+    status.concat("00:00:00");
+  }
+  return status;  
 }
 
 void handleWebHangUp() {
@@ -139,7 +148,6 @@ void handleOldRoot() {
   page.concat("<br>CALL STATUS: ");
   page.concat(getCallStatus());
   page.concat("<br>");
-  page.concat("<input type=\"file\">");
   webServer.send(200, "text/html", page);
   delay(100);
 }
