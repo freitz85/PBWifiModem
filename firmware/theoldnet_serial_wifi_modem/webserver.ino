@@ -4,61 +4,129 @@
 ESP8266HTTPUpdateServer httpUpdater;
 ESP8266WebServer webServer(80);
 
+#include "webserver.h" //Our HTML webpage contents
+
 void handleWebServer(){
   // Service the Web server
   webServer.handleClient();
 }
 
 void webserverSetup(){
+  webServer.on("/old", handleOldRoot);
   webServer.on("/", handleRoot);
   webServer.on("/ath", handleWebHangUp);
+  webServer.on("/get-settings", handleGetSettings);
+  webServer.on("/update-settings", handleUpdateSettings);
+  webServer.on("/update-firmware", handleUpdateFirmware);
+  webServer.on("/update-speeddial", handleUpdateSpeeddial);
+  webServer.on("/factory-defaults", handleFactoryDefaults);
+  webServer.on("/file-upload", handleFileUpload);
   webServer.begin();
 }
 
-void webserverHangup(String t){
-  webServer.send(200, "text/plain", t);  
+void handleUpdateSettings(){}
+void handleUpdateFirmware(){}
+void handleUpdateSpeeddial(){}
+void handleFactoryDefaults(){}
+void handleFileUpload(){}
+
+void handleGetSettings(){
+  String json = "{ ";
+    json += "\"wifiStatus\": \"" + getWifiStatus() + "\",";
+    json += "\"ssidStatus\": \"" + WiFi.SSID() + "\",";
+    json += "\"macAddress\": \"" + getMacAddress() + "\",";
+    json += "\"ipAddress\": \"" + ipToString(WiFi.localIP()) + "\",";
+    json += "\"gateway\": \"" + ipToString(WiFi.gatewayIP()) + "\",";
+    json += "\"subnet\": \"" + ipToString(WiFi.subnetMask()) + "\",";
+    json += "\"serverPort\": \"" + String(tcpServerPort) + "\",";
+    json += "\"callStatus\": \"" + getCallStatus() + "\",";
+    json += "\"baudStatus\": \"" + String(bauds[serialspeed]) + "\"";
+  json += "}";
+  webServer.send(200, "application/json", json);
 }
 
-void handleRoot() {
-  String page = "WIFI STATUS: ";
+String getWifiStatus(){
   if (WiFi.status() == WL_CONNECTED) {
-    page.concat("CONNECTED");
+    return "CONNECTED";
   }
   if (WiFi.status() == WL_IDLE_STATUS) {
-    page.concat("OFFLINE");
+    return "OFFLINE";
   }
   if (WiFi.status() == WL_CONNECT_FAILED) {
-    page.concat("CONNECT FAILED");
+    return "CONNECT FAILED";
   }
   if (WiFi.status() == WL_NO_SSID_AVAIL) {
-    page.concat("SSID UNAVAILABLE");
+    return "SSID UNAVAILABLE";
   }
   if (WiFi.status() == WL_CONNECTION_LOST) {
-    page.concat("CONNECTION LOST");
+    return "CONNECTION LOST";
   }
   if (WiFi.status() == WL_DISCONNECTED) {
-    page.concat("DISCONNECTED");
+    return "DISCONNECTED";
   }
   if (WiFi.status() == WL_SCAN_COMPLETED) {
-    page.concat("SCAN COMPLETED");
+    return "SCAN COMPLETED";
+  }  
+  return "ERROR";
+}
+
+String getMacAddress(){
+  byte mac[6];
+  WiFi.macAddress(mac);
+  String macAddress = "";
+  macAddress.concat(String(mac[0], HEX));
+  macAddress.concat(":");
+  macAddress.concat(String(mac[1], HEX));
+  macAddress.concat(":");
+  macAddress.concat(String(mac[2], HEX));
+  macAddress.concat(":");
+  macAddress.concat(String(mac[3], HEX));
+  macAddress.concat(":");
+  macAddress.concat(String(mac[4], HEX));
+  macAddress.concat(":");
+  macAddress.concat(String(mac[5], HEX));
+  return macAddress;  
+}
+
+String getCallStatus(){
+  String status = "";
+  if (callConnected) {
+    status.concat("CONNECTED TO ");
+    if (ppp) {
+      status.concat("PPP");
+    } else {
+      status.concat(ipToString(tcpClient.remoteIP()));
+    }
+    status.concat("CALL LENGTH: "); 
+    status.concat(connectTimeString()); 
+//    yield(); //why?
+  } else {
+    status.concat("NOT CONNECTED");
   }
+  return status;
+}
+
+void handleWebHangUp() {
+  String t = "NO CARRIER (" + connectTimeString() + ")";
+  hangUp();
+  webServer.send(200, "text/plain", t);
+}
+
+void handleRoot(){
+ String s = MAIN_page; //Read HTML contents
+ webServer.send(200, "text/html", s);
+ delay(100);
+}
+
+void handleOldRoot() {
+  String page = "WIFI STATUS: ";
+  page.concat(getWifiStatus());
+  
   yield();
   page.concat("<br>SSID.......: " + WiFi.SSID());
 
-  byte mac[6];
-  WiFi.macAddress(mac);
   page.concat("<br>MAC ADDRESS: ");
-  page.concat(String(mac[0], HEX));
-  page.concat(":");
-  page.concat(String(mac[1], HEX));
-  page.concat(":");
-  page.concat(String(mac[2], HEX));
-  page.concat(":");
-  page.concat(String(mac[3], HEX));
-  page.concat(":");
-  page.concat(String(mac[4], HEX));
-  page.concat(":");
-  page.concat(String(mac[5], HEX));
+  page.concat(getMacAddress());
   yield();
 
   page.concat("<br>IP ADDRESS.: "); page.concat(ipToString(WiFi.localIP()));
@@ -69,17 +137,7 @@ void handleRoot() {
   yield();
   page.concat("<br>SERVER PORT: "); page.concat(tcpServerPort);
   page.concat("<br>CALL STATUS: ");
-  if (callConnected) {
-    page.concat("CONNECTED TO ");
-    if (ppp) {
-      page.concat("PPP");
-    } else {
-      page.concat(ipToString(tcpClient.remoteIP()));
-    }
-    page.concat("<br>CALL LENGTH: "); page.concat(connectTimeString()); yield();
-  } else {
-    page.concat("NOT CONNECTED");
-  }
+  page.concat(getCallStatus());
   page.concat("<br>");
   page.concat("<input type=\"file\">");
   webServer.send(200, "text/html", page);

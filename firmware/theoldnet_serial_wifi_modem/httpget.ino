@@ -1,10 +1,12 @@
 void handleHTTPRequest(){
-// From the URL, aquire required variables
+    
+    // From the URL, aquire required variables
     // (12 = "ATGEThttp://")
     int portIndex = cmd.indexOf(":", 12); // Index where port number might begin
     int pathIndex = cmd.indexOf("/", 12); // Index first host name and possible port ends and path begins
     int port;
     String path, host;
+    
     if (pathIndex < 0)
     {
       pathIndex = cmd.length();
@@ -23,6 +25,10 @@ void handleHTTPRequest(){
     if (path == "") path = "/";
     char *hostChr = new char[host.length() + 1];
     host.toCharArray(hostChr, host.length() + 1);
+
+    Serial.print("Start file transfer receive");
+    delay(5000);
+    
 
     // Establish connection
     if (!tcpClient.connect(hostChr, port))

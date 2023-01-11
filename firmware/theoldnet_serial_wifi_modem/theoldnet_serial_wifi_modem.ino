@@ -268,12 +268,6 @@ void hangUp() {
   connectTime = 0;
 }
 
-void handleWebHangUp() {
-  String t = "NO CARRIER (" + connectTimeString() + ")";
-  hangUp();
-  webserverHangup(t);
-}
-
 void answerCall() {
   tcpClient = tcpServer.available();
   tcpClient.setNoDelay(true); // try to disable naggle
