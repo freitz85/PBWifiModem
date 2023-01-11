@@ -14,6 +14,7 @@ void handleWebServer(){
 void webserverSetup(){
   webServer.on("/", handleRoot);
   webServer.on("/ath", handleWebHangUp);
+  webServer.on("/reboot", handleReboot);
   webServer.on("/get-status", handleGetStatus);
   webServer.on("/get-settings", handleGetSettings);
   webServer.on("/update-settings", handleUpdateSettings);
@@ -25,22 +26,46 @@ void webserverSetup(){
 }
 
 void handleUpdateSettings(){
-  return handleRoot();  
+  return redirectToRoot();  
 }
 void handleUpdateFirmware(){
-  return handleRoot();  
+  firmwareUpdating = true;
+  return redirectToRoot();  
 }
 void handleUpdateSpeeddial(){
-  return handleRoot(); 
+  return redirectToRoot(); 
 }
 void handleFactoryDefaults(){
-  return handleRoot();   
+  defaultEEPROM();
+  readSettings();
+  sendResult(R_OK);  
+  return redirectToRoot();   
 }
 void handleFileUpload(){
-  return handleRoot();   
+  return redirectToRoot();   
 }
 void handleGetSettings(){
-  return handleRoot();   
+  String json = "{ ";
+  json += "\"echo\": \"" + String(echo) + "\",";
+  json += "\"autoAnswer\": \"" + String(autoAnswer) + "\",";
+  json += "\"serialspeed\": \"" + String(serialspeed) + "\",";
+  json += "\"ssid\": \"" + String(ssid) + "\",";
+  json += "\"busyMsg\": \"" + String(busyMsg) + "\",";
+  json += "\"tcpServerPort\": \"" + String(tcpServerPort) + "\",";
+  json += "\"telnet\": \"" + String(telnet) + "\",";
+  json += "\"verboseResults\": \"" + String(verboseResults) + "\",";
+  json += "\"flowControl\": \"" + String(flowControl) + "\",";
+  json += "\"pinPolarity\": \"" + String(pinPolarity) + "\",";
+  json += "\"quietMode\": \"" + String(quietMode) + "\"";
+  json += "}";
+  webServer.send(200, "application/json", json);
+  
+}
+
+void handleGetSpeedDials(){
+//  for (int i = 0; i < 10; i++) {
+//      speedDials[i];
+//  }
 }
 
 void handleGetStatus(){
@@ -132,11 +157,22 @@ void handleWebHangUp() {
   String t = "NO CARRIER (" + connectTimeString() + ")";
   hangUp();
 //  webServer.send(200, "text/plain", t);
-  return handleRoot();
+  redirectToRoot();
+}
+
+void handleReboot(){
+  Serial.println("Rebooting... (requested from web)");
+  redirectToRoot();
+  ESP.restart();
 }
 
 void handleRoot(){
  String s = MAIN_page; //Read HTML contents
  webServer.send(200, "text/html", s);
  delay(100);
+}
+
+void redirectToRoot(){
+  webServer.sendHeader("Location", String("/"), true);
+  webServer.send ( 302, "text/plain", "");
 }

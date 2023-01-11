@@ -2,6 +2,11 @@ void wifiSetup(){
   if (tcpServerPort > 0) tcpServer.begin();
 
   WiFi.mode(WIFI_STA);
+
+  //doesn't seem to work
+  String hostname = "THEOLDNET";
+  WiFi.setHostname(hostname.c_str());
+  
   connectWiFi();
   sendResult(R_OK);
   //tcpServer(tcpServerPort); // can't start tcpServer inside a function-- must live outside

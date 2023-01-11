@@ -16,8 +16,8 @@
                 margin: auto;
             }
 
-            div {
-
+            textarea{
+                height: 70px;
             }
 
             .container {
@@ -83,31 +83,32 @@
             CALL LENGTH: <span id="call-length"></span><br>
             <br>
             <a href="/ath">HANG UP</a>
+            <a href="/reboot" onclick="return confirm('Are you sure?')">REBOOT</a>
         </div>
         <div class="container">
-            <p>Settings</p>
+            <p>SETTINGS</p>
             <form action="/update-settings" method="GET">
                 <ul>
                     <li>
                         <label for="baud">BAUD</label>
                         <select name="baud" id="baud">
-                            <option value="300">300</option>
-                            <option value="1200">1200</option>
-                            <option value="2400">2400</option>
-                            <option value="4800">4800</option>
-                            <option value="9600">9600</option>
-                            <option value="19200">19200</option>
-                            <option value="38400">38400</option>
-                            <option value="57600">57600</option>
-                            <option value="115200">115200</option>
+                            <option value="0">300</option>
+                            <option value="1">1200</option>
+                            <option value="2">2400</option>
+                            <option value="3">4800</option>
+                            <option value="4">9600</option>
+                            <option value="5">19200</option>
+                            <option value="6">38400</option>
+                            <option value="7">57600</option>
+                            <option value="8">115200</option>
                         </select>
                     </li>
                     <li>
                         <label for="flow">FLOW CONTROL</label>
                         <select name="flow" id="flow">
-                            <option value="off">OFF</option>
-                            <option value="software">SOFTWARE</option>
-                            <option value="hardare">HARDWARE</option>
+                            <option value="0">OFF</option>
+                            <option value="1">HARDWARE</option>
+                            <option value="2">SOFTWARE</option>
                         </select>            
                     </li>
                     <li>
@@ -134,25 +135,33 @@
                         <label for="autoanswer">AUTO ANSWER</label>
                         <input name="autoanswer" id="autoanswer" type="checkbox">
                     </li>
-                    <!-- <li>
+                    <li>
+                        <label for="busymessage">BUSY MESSAGE</label>
+                        <textarea  name="busymessage" id="busymessage"></textarea>
+                    </li>
+                    <li>
+                        <label for="tcpserverport">TCP SERVER PORT</label>
+                        <input name="tcpserverport" id="tcpserverport" type="text">
+                    </li>
+                    <li>
                         <label for="ssid">SSID</label>
                         <input name="ssid" id="ssid" type="text" value="TESTNETWORK">
                     </li>
                     <li>
                         <label for="password">PASSWORD</label>
                         <input name="password" id="password" type="password" value="asdfasdf">
-                    </li> -->
+                    </li>
                 </ul>
                 <input type="submit" value="SAVE">
             </form>
             <div id="firmware-links">
                 <a href="/update-firmware" onclick="return confirm('Are you sure?')">UPDATE FIRMWARE</a>
-                <a href="/factory-defaults" onclick="return confirm('Are you sure?')">FACTORY DEFAULTS</a>
+                <a href="/factory-defaults" onclick="return confirm('If you reset factory defaults you will not be able to access this web interface until you configure WIFI again. Are you sure?')">FACTORY DEFAULTS</a>
             </div>
         </div>
         <div class="container">
             <form action="/update-speeddial" method="GET">
-                <p>SPEED DIAL</p>
+                <p>EDIT SPEED DIAL</p>
                 <div class="speeddial">
                     <label for="">NAME</label>
                     <input type="text" name="speeddialname1" id="speeddialname1">
@@ -224,6 +233,8 @@
         const telnet = document.getElementById('telnet')
         const polarity = document.getElementById('polarity')
         const autoanswer = document.getElementById('autoanswer')
+        const busymessage = document.getElementById('busymessage')
+        const tcpserverport = document.getElementById('tcpserverport')
         const ssid = document.getElementById('ssid')
         const password = document.getElementById('password')
 
@@ -253,7 +264,27 @@
             });
         }
 
+        const getSettings = () => {
+            fetch(`/get-settings`)
+            .then((response) => response.json())
+            .then((data) => {
+                console.log(data)
+                baud.value = data.serialspeed
+                ssid.value = data.ssid
+                busymessage.value = data.busyMsg
+                tcpserverport.value = data.tcpServerPort
+                flow.value = data.flowControl
+                telnet.checked = Boolean(parseInt(data.telnet))
+                verbose.checked = Boolean(parseInt(data.verboseResults))
+                polarity.checked = Boolean(parseInt(data.pinPolarity))
+                quiet.checked = Boolean(parseInt(data.quietMode))
+                echo.checked = Boolean(parseInt(data.echo))
+                autoanswer.checked = Boolean(parseInt(data.autoAnswer))
+            });
+        }        
+
+        getSettings()
         getStatus()
-        setInterval(getStatus, 1000)
+        setInterval(getStatus, 10000)
     </script>
 </html>
