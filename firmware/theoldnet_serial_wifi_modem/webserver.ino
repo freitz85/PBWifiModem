@@ -12,9 +12,9 @@ void handleWebServer(){
 }
 
 void webserverSetup(){
-  webServer.on("/old", handleOldRoot);
   webServer.on("/", handleRoot);
   webServer.on("/ath", handleWebHangUp);
+  webServer.on("/get-status", handleGetStatus);
   webServer.on("/get-settings", handleGetSettings);
   webServer.on("/update-settings", handleUpdateSettings);
   webServer.on("/update-firmware", handleUpdateFirmware);
@@ -24,13 +24,26 @@ void webserverSetup(){
   webServer.begin();
 }
 
-void handleUpdateSettings(){}
-void handleUpdateFirmware(){}
-void handleUpdateSpeeddial(){}
-void handleFactoryDefaults(){}
-void handleFileUpload(){}
-
+void handleUpdateSettings(){
+  return handleRoot();  
+}
+void handleUpdateFirmware(){
+  return handleRoot();  
+}
+void handleUpdateSpeeddial(){
+  return handleRoot(); 
+}
+void handleFactoryDefaults(){
+  return handleRoot();   
+}
+void handleFileUpload(){
+  return handleRoot();   
+}
 void handleGetSettings(){
+  return handleRoot();   
+}
+
+void handleGetStatus(){
   String json = "{ ";
     json += "\"wifiStatus\": \"" + getWifiStatus() + "\",";
     json += "\"ssidStatus\": \"" + WiFi.SSID() + "\",";
@@ -118,36 +131,12 @@ String getCallLength(){
 void handleWebHangUp() {
   String t = "NO CARRIER (" + connectTimeString() + ")";
   hangUp();
-  webServer.send(200, "text/plain", t);
+//  webServer.send(200, "text/plain", t);
+  return handleRoot();
 }
 
 void handleRoot(){
  String s = MAIN_page; //Read HTML contents
  webServer.send(200, "text/html", s);
  delay(100);
-}
-
-void handleOldRoot() {
-  String page = "WIFI STATUS: ";
-  page.concat(getWifiStatus());
-  
-  yield();
-  page.concat("<br>SSID.......: " + WiFi.SSID());
-
-  page.concat("<br>MAC ADDRESS: ");
-  page.concat(getMacAddress());
-  yield();
-
-  page.concat("<br>IP ADDRESS.: "); page.concat(ipToString(WiFi.localIP()));
-  page.concat("<br>GATEWAY....: "); page.concat(ipToString(WiFi.gatewayIP()));
-  yield();
-
-  page.concat("<br>SUBNET MASK: "); page.concat(ipToString(WiFi.subnetMask()));
-  yield();
-  page.concat("<br>SERVER PORT: "); page.concat(tcpServerPort);
-  page.concat("<br>CALL STATUS: ");
-  page.concat(getCallStatus());
-  page.concat("<br>");
-  webServer.send(200, "text/html", page);
-  delay(100);
 }

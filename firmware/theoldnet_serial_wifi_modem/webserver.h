@@ -18,6 +18,10 @@ const char MAIN_page[] PROGMEM = R"=====(
             }
 
             div {
+
+            }
+
+            .container {
                 margin: 6px;
                 padding: 6px;
                 /* border: 6px double rgb(102, 0, 127); */
@@ -37,6 +41,8 @@ const char MAIN_page[] PROGMEM = R"=====(
             }
 
             .info {
+                margin: 6px;
+                padding: 6px;
                 border: 6px inset rgb(231, 123, 229);
                 background-color: rgb(219, 219, 213);
             }
@@ -53,11 +59,19 @@ const char MAIN_page[] PROGMEM = R"=====(
             #modem-icon:hover {
                 cursor: alias;
             }
+            #firmware-links {
+                text-align: right;
+            }
         </style>
     </head>
     <body>
-        <div id="title-banner">The Old Net Serial WIFI Adapter<img id="modem-icon" onclick="toggleModemAudio()" src="http://theoldnet.com/images/dialup3.gif" alt=""></div>
-        <div>
+        <div id="title-banner" class="container">
+            <span>
+                <a href="http://theoldnet.com" target="_blank">The Old Net</a> 
+                Serial WIFI Adapter
+            </span>
+            <img id="modem-icon" onclick="toggleModemAudio()" src="http://theoldnet.com/images/dialup3.gif" alt=""></div>
+        <div class="container">
             WIFI STATUS: <span id="wifi-status"></span><br>
             SSID.......: <span id="ssid-status"></span></span><br>
             MAC ADDRESS: <span id="mac-address"></span><br>
@@ -71,7 +85,7 @@ const char MAIN_page[] PROGMEM = R"=====(
             <br>
             <a href="/ath">HANG UP</a>
         </div>
-        <div>
+        <div class="container">
             <p>Settings</p>
             <form action="/update-settings" method="GET">
                 <ul>
@@ -132,10 +146,12 @@ const char MAIN_page[] PROGMEM = R"=====(
                 </ul>
                 <input type="submit" value="SAVE">
             </form>
-            <a href="/update-firmware">UPDATE FIRMWARE</a>
-            <a href="/factory-defaults">FACTORY DEFAULTS</a>
+            <div id="firmware-links">
+                <a href="/update-firmware" onclick="return confirm('Are you sure?')">UPDATE FIRMWARE</a>
+                <a href="/factory-defaults" onclick="return confirm('Are you sure?')">FACTORY DEFAULTS</a>
+            </div>
         </div>
-        <div>
+        <div class="container">
             <form action="/update-speeddial" method="GET">
                 <p>SPEED DIAL</p>
                 <div class="speeddial">
@@ -153,14 +169,14 @@ const char MAIN_page[] PROGMEM = R"=====(
                 <input type="submit" value="SAVE">
             </form>
         </div>
-        <div>
+        <div class="container">
             <p>Upload File for transfer in terminal</p>
             <form action="/file-upload">
                 <input type="file">
                 <input type="submit" value="UPLOAD">
             </form>
         </div>        
-        <div>
+        <div class="container">
             <div class="info">
                 If you do not have a terminal program installed on your vintage computer you can manually type this program into BASIC which will allow you to download a terminal program.
             </div>
@@ -221,7 +237,7 @@ const char MAIN_page[] PROGMEM = R"=====(
         }
 
         const getStatus = () => {
-            fetch(`/get-settings`)
+            fetch(`/get-status`)
             .then((response) => response.json())
             .then((data) => {
                 console.log(data)
@@ -238,7 +254,8 @@ const char MAIN_page[] PROGMEM = R"=====(
             });
         }
 
-        setInterval(getStatus, 3000)
+        getStatus()
+        setInterval(getStatus, 1000)
     </script>
 </html>
 )=====";
